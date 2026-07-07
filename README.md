@@ -35,14 +35,17 @@ curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/inst
 curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
 ```
 
-**方式 2：npx**（需要 Node.js 18+）
+**方式 2：npx 直接从 GitHub 跑**（需要 Node.js 18+）
 
 ```bash
-# 发布到 npm 后
-npx cut-skill install --all
+# 安装到自动检测到的 agent
+npx github:ygtec/cut.skill/installer install
 
-# 或直接从 GitHub 跑（无需发布）
+# 安装到全部 6 家 agent
 npx github:ygtec/cut.skill/installer install --all
+
+# 安装到指定 agent
+npx github:ygtec/cut.skill/installer install --agent claude
 ```
 
 **方式 3：手动 clone**
@@ -59,7 +62,7 @@ pip install -r requirements.txt
 
 ```bash
 # 查看安装位置
-npx cut-skill list
+npx github:ygtec/cut.skill/installer list
 
 # 或直接用 Python
 cd ~/.claude/skills/cut/scripts  # 路径因 agent 而异

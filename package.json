@@ -1,7 +1,7 @@
 {
   "name": "cut-skill-root",
   "version": "1.1.0",
-  "description": "Unified video editing control skill for AI agents (JianYing + Premiere). This is the root package; the actual installer is in installer/",
+  "description": "统一视频剪辑操控 Skill（剪映 + Premiere）| Unified video editing control skill for AI agents (JianYing + Premiere). Installer in installer/",
   "type": "module",
   "private": true,
   "bin": {

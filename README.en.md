@@ -35,14 +35,17 @@ curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/inst
 curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
 ```
 
-**Option 2: npx** (requires Node.js 18+)
+**Option 2: npx directly from GitHub** (requires Node.js 18+)
 
 ```bash
-# After publishing to npm
-npx cut-skill install --all
+# Install to auto-detected agents
+npx github:ygtec/cut.skill/installer install
 
-# Or run directly from GitHub (no npm publish needed)
+# Install to all 6 agents
 npx github:ygtec/cut.skill/installer install --all
+
+# Install to a specific agent
+npx github:ygtec/cut.skill/installer install --agent claude
 ```
 
 **Option 3: Manual clone**
@@ -59,7 +62,7 @@ The installer supports 6 agents: Codex CLI / Claude Code / OpenCode / Kimi Code 
 
 ```bash
 # List installed locations
-npx cut-skill list
+npx github:ygtec/cut.skill/installer list
 
 # Or use Python directly
 cd ~/.claude/skills/cut/scripts  # path varies by agent

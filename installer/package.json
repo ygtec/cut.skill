@@ -1,7 +1,7 @@
 {
-  "name": "cut-skill",
+  "name": "cut-skill-installer",
   "version": "1.1.0",
-  "description": "Installer CLI for cut.skill — unified video editing control skill (JianYing + Premiere) for AI agents",
+  "description": "Installer CLI for cut.skill — unified video editing control skill (JianYing + Premiere) for AI agents. Run via: npx github:ygtec/cut.skill/installer",
   "type": "module",
   "bin": {
     "cut-skill": "./cli.mjs"
