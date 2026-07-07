@@ -73,3 +73,12 @@ draft_content.json.bak.*
 # 环境变量 / Environment
 .env
 .env.local
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 临时安装目录
+.cut-skill-tmp-*

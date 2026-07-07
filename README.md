@@ -20,26 +20,51 @@
 
 ## 快速开始
 
-### 1. 安装
+### 一键安装（推荐）
+
+**方式 1：curl 一键脚本**（不需要 Node.js）
 
 ```bash
-git clone https://github.com/<your-username>/cut.skill.git
+# 安装到自动检测到的 agent
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+# 安装到指定 agent
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --agent claude
+
+# 安装到全部 6 家 agent
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
+```
+
+**方式 2：npx**（需要 Node.js 18+）
+
+```bash
+# 发布到 npm 后
+npx cut-skill install --all
+
+# 或直接从 GitHub 跑（无需发布）
+npx github:ygtec/cut.skill/installer install --all
+```
+
+**方式 3：手动 clone**
+
+```bash
+git clone https://github.com/ygtec/cut.skill.git
 cd cut.skill/scripts
 pip install -r requirements.txt
-# 或全功能安装
-pip install -e ".[all]"
 ```
 
-### 2. 验证
+安装器支持 6 家 agent：Codex CLI / Claude Code / OpenCode / Kimi Code / Qwen Code / GLM Code。详见 [installer/README.md](./installer/README.md)。
+
+### 验证安装
 
 ```bash
+# 查看安装位置
+npx cut-skill list
+
+# 或直接用 Python
+cd ~/.claude/skills/cut/scripts  # 路径因 agent 而异
 python -m cut.cli detect
-# 应输出本机剪映/CapCut/Premiere 安装情况
 ```
-
-### 3. 配置到你的 agent
-
-参见 [`references/agent-integration.md`](./references/agent-integration.md)，覆盖 Codex / Claude / OpenCode / Kimi / Qwen / GLM 6 家 agent 的配置示例。
 
 ## 使用示例
 
@@ -107,6 +132,11 @@ print("完成。请在剪映中重新打开项目查看。")
 ```
 cut/
 ├── SKILL.md                       # 主入口（agent 首读）
+├── installer/                     # 一键安装器（npx / curl）
+│   ├── cli.mjs                    # Node.js CLI
+│   ├── install.sh                 # bash 一键脚本
+│   ├── src/                       # 检测/下载/配置逻辑
+│   └── README.md                  # 安装器文档
 ├── references/                    # 参考文档（按需加载）
 │   ├── jianying-draft-schema.md   # 剪映 draft 文件结构详解
 │   ├── jianying-operations.md     # 剪映所有操作详解

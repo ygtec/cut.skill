@@ -20,26 +20,51 @@ English | [中文](./README.md)
 
 ## Quick Start
 
-### 1. Install
+### One-line Install (Recommended)
+
+**Option 1: curl one-liner** (no Node.js required)
 
 ```bash
-git clone https://github.com/<your-username>/cut.skill.git
+# Install to auto-detected agents
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+# Install to a specific agent
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --agent claude
+
+# Install to all 6 agents
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
+```
+
+**Option 2: npx** (requires Node.js 18+)
+
+```bash
+# After publishing to npm
+npx cut-skill install --all
+
+# Or run directly from GitHub (no npm publish needed)
+npx github:ygtec/cut.skill/installer install --all
+```
+
+**Option 3: Manual clone**
+
+```bash
+git clone https://github.com/ygtec/cut.skill.git
 cd cut.skill/scripts
 pip install -r requirements.txt
-# Or install with all optional deps
-pip install -e ".[all]"
 ```
 
-### 2. Verify
+The installer supports 6 agents: Codex CLI / Claude Code / OpenCode / Kimi Code / Qwen Code / GLM Code. See [installer/README.md](./installer/README.md) for details.
+
+### Verify Installation
 
 ```bash
+# List installed locations
+npx cut-skill list
+
+# Or use Python directly
+cd ~/.claude/skills/cut/scripts  # path varies by agent
 python -m cut.cli detect
-# Should print detected JianYing/CapCut/Premiere installations
 ```
-
-### 3. Configure your agent
-
-See [`references/agent-integration.md`](./references/agent-integration.md) for setup examples covering Codex / Claude / OpenCode / Kimi / Qwen / GLM.
 
 ## Usage Examples
 
@@ -107,6 +132,11 @@ print("Done. Reopen the project in JianYing to see the result.")
 ```
 cut/
 ├── SKILL.md                       # Main entry (agent reads first)
+├── installer/                     # One-line installer (npx / curl)
+│   ├── cli.mjs                    # Node.js CLI
+│   ├── install.sh                 # bash one-liner
+│   ├── src/                       # detect/download/config logic
+│   └── README.md                  # Installer docs
 ├── references/                    # Reference docs (loaded on demand)
 │   ├── jianying-draft-schema.md   # JianYing draft file schema
 │   ├── jianying-operations.md     # All JianYing operations
