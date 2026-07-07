@@ -65,20 +65,33 @@ npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com
 git clone https://github.com/ygtec/cut.skill.git
 cd cut.skill/scripts
 
-# 2. Install Python dependencies
+# 2. Create a virtual environment (avoid polluting system Python)
+python -m venv .venv
+
+# 3. Activate the virtual environment
+#    macOS/Linux:
+source .venv/bin/activate
+#    Windows PowerShell:
+.venv\Scripts\Activate.ps1
+#    Windows CMD:
+.venv\Scripts\activate.bat
+
+# 4. Install Python dependencies
 pip install -r requirements.txt
 # Full install (with optional deps: pymiere/flask/mcp)
 pip install -e ".[all]"
 
-# 3. Verify installation
+# 5. Verify installation
 python -m cut.cli detect
 # Should print detected JianYing/CapCut/Premiere installations
 
-# 4. Start using
+# 6. Start using
 python -m cut.cli list-drafts              # List JianYing projects
 python -m cut.cli get-state --backend jianying --project <name>
 python -m cut.cli split --backend jianying --project <name> --track 0 --at 5s
 ```
+
+> For subsequent uses, just run `source .venv/bin/activate` to activate the environment — no need to reinstall dependencies.
 
 To integrate cut.skill with your agent tools (auto-create skill directories, update config files), run from the repo root:
 

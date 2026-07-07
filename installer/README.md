@@ -53,8 +53,23 @@ npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com
 ```bash
 # Clone (China mirror: prefix with https://gh-proxy.com/)
 git clone https://github.com/ygtec/cut.skill.git
-cd cut.skill/installer
-node cli.mjs install --all --source ..
+cd cut.skill/scripts
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate        # macOS/Linux
+# .venv\Scripts\Activate.ps1     # Windows PowerShell
+
+# Install Python dependencies
+pip install -r requirements.txt
+pip install -e ".[all]"          # full install with optional deps
+
+# Verify
+python -m cut.cli detect
+
+# Then install to agents (from repo root)
+cd ..
+node installer/cli.mjs install --all --source .
 ```
 
 ## Commands

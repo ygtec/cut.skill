@@ -65,20 +65,33 @@ npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com
 git clone https://github.com/ygtec/cut.skill.git
 cd cut.skill/scripts
 
-# 2. 安装 Python 依赖
+# 2. 创建虚拟环境（避免污染系统 Python）
+python -m venv .venv
+
+# 3. 激活虚拟环境
+#    macOS/Linux:
+source .venv/bin/activate
+#    Windows PowerShell:
+.venv\Scripts\Activate.ps1
+#    Windows CMD:
+.venv\Scripts\activate.bat
+
+# 4. 安装 Python 依赖
 pip install -r requirements.txt
 # 全功能安装（含 pymiere/flask/mcp 等可选依赖）
 pip install -e ".[all]"
 
-# 3. 验证安装
+# 5. 验证安装
 python -m cut.cli detect
 # 应输出本机剪映/CapCut/Premiere 安装情况
 
-# 4. 开始使用
+# 6. 开始使用
 python -m cut.cli list-drafts              # 列出剪映项目
 python -m cut.cli get-state --backend jianying --project <项目名>
 python -m cut.cli split --backend jianying --project <项目名> --track 0 --at 5s
 ```
+
+> 后续使用时只需 `source .venv/bin/activate` 激活环境即可，无需重复安装依赖。
 
 如需把 cut.skill 配置到你的 agent 工具（自动创建 skill 目录、更新配置文件），在仓库根目录运行：
 
