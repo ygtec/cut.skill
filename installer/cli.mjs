@@ -56,6 +56,7 @@ ${bold('install 选项：')}
   ${yellow('--source <path>')}     用本地已下载的仓库，不联网下载
   ${yellow('--repo <github>')}     自定义 GitHub 仓库（默认 ygtec/cut.skill）
   ${yellow('--ref <git-ref>')}     自定义分支/tag（默认 main）
+  ${yellow('--mirror <url>')}      git clone 镜像前缀（国内可用 https://gh-proxy.com/）
   ${yellow('--force')}             覆盖已存在的安装
 
 ${bold('示例：')}
@@ -84,6 +85,17 @@ ${bold('示例：')}
 ${bold('不需要 Node.js 时用 curl 一键安装：')}
   curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
 
+${bold('国内网络不稳定时用镜像：')}
+  # 方式 A：用镜像下载脚本
+  curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+  # 方式 B：指定镜像让 git clone 走代理
+  npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com/
+
+  # 方式 C：设环境变量（一劳永逸）
+  export CUT_MIRROR=https://gh-proxy.com/
+  npx github:ygtec/cut.skill/installer install --all
+
 ${bold('文档：')}https://github.com/ygtec/cut.skill
 `;
 
@@ -108,6 +120,7 @@ function parseCliArgs(argv) {
         source: { type: 'string' },
         repo: { type: 'string', default: 'ygtec/cut.skill' },
         ref: { type: 'string', default: 'main' },
+        mirror: { type: 'string', default: '' },
         force: { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
         version: { type: 'boolean', short: 'v', default: false },
@@ -186,9 +199,10 @@ async function cmdInstall(opts) {
       process.exit(1);
     }
   } else {
-    console.log(cyan(`从 GitHub 下载：${opts.repo}@${opts.ref}`));
+    const mirrorInfo = opts.mirror ? ` (mirror: ${opts.mirror})` : '';
+    console.log(cyan(`从 GitHub 下载：${opts.repo}@${opts.ref}${mirrorInfo}`));
     try {
-      sourceDir = await downloadSkill(opts.repo, opts.ref);
+      sourceDir = await downloadSkill(opts.repo, opts.ref, opts.mirror);
     } catch (e) {
       console.error(red(e.message));
       process.exit(1);

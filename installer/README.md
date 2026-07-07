@@ -22,6 +22,16 @@ Install to all 6 agents:
 curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
 ```
 
+**For users in China (unstable GitHub connection)**:
+
+```bash
+# Option A: download the script via mirror
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+# Option B: tell git clone to use mirror
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --mirror https://gh-proxy.com/
+```
+
 ### Option 2: npx from GitHub (requires Node.js 18+)
 
 ```bash
@@ -33,11 +43,15 @@ npx github:ygtec/cut.skill/installer install --all
 
 # Install to a specific agent
 npx github:ygtec/cut.skill/installer install --agent claude
+
+# Use mirror for China
+npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com/
 ```
 
-### Option 3: clone & run
+### Option 3: clone & run (offline)
 
 ```bash
+# Clone (China mirror: prefix with https://gh-proxy.com/)
 git clone https://github.com/ygtec/cut.skill.git
 cd cut.skill/installer
 node cli.mjs install --all --source ..
@@ -72,6 +86,7 @@ npx github:ygtec/cut.skill/installer <command> [options]
 | `--source <path>` | Use local repo path instead of downloading |
 | `--repo <github>` | Custom GitHub repo (default: `ygtec/cut.skill`) |
 | `--ref <git-ref>` | Custom branch/tag (default: `main`) |
+| `--mirror <url>` | git clone mirror prefix (e.g. `https://gh-proxy.com/` for China) |
 | `--force` | Overwrite existing installation |
 
 ## Supported Agents

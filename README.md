@@ -35,6 +35,16 @@ curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/inst
 curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
 ```
 
+**国内网络不稳定时用镜像**：
+
+```bash
+# 方式 A：用镜像下载脚本
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+# 方式 B：指定镜像让 git clone 走代理
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --mirror https://gh-proxy.com/
+```
+
 **方式 2：npx 直接从 GitHub 跑**（需要 Node.js 18+）
 
 ```bash
@@ -44,19 +54,53 @@ npx github:ygtec/cut.skill/installer install
 # 安装到全部 6 家 agent
 npx github:ygtec/cut.skill/installer install --all
 
-# 安装到指定 agent
-npx github:ygtec/cut.skill/installer install --agent claude
+# 国内镜像
+npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com/
 ```
 
-**方式 3：手动 clone**
+**方式 3：手动 clone + Python 运行**（适合开发者/离线环境）
 
 ```bash
+# 1. clone 仓库（国内可用镜像：https://gh-proxy.com/https://github.com/ygtec/cut.skill.git）
 git clone https://github.com/ygtec/cut.skill.git
 cd cut.skill/scripts
+
+# 2. 安装 Python 依赖
 pip install -r requirements.txt
+# 全功能安装（含 pymiere/flask/mcp 等可选依赖）
+pip install -e ".[all]"
+
+# 3. 验证安装
+python -m cut.cli detect
+# 应输出本机剪映/CapCut/Premiere 安装情况
+
+# 4. 开始使用
+python -m cut.cli list-drafts              # 列出剪映项目
+python -m cut.cli get-state --backend jianying --project <项目名>
+python -m cut.cli split --backend jianying --project <项目名> --track 0 --at 5s
 ```
 
-安装器支持 6 家 agent：Codex CLI / Claude Code / OpenCode / Kimi Code / Qwen Code / GLM Code。详见 [installer/README.md](./installer/README.md)。
+如需把 cut.skill 配置到你的 agent 工具（自动创建 skill 目录、更新配置文件），在仓库根目录运行：
+
+```bash
+node installer/cli.mjs install --all --source .
+```
+
+### 集成到 agent
+
+cut.skill 支持自动安装到 6 家 agent（自动创建 skill 目录、更新配置文件）：
+
+```bash
+# 自动检测本机已安装的 agent 工具并安装
+npx github:ygtec/cut.skill/installer install
+
+# 或指定 agent
+npx github:ygtec/cut.skill/installer install --agent claude,codex
+```
+
+安装完成后，在 agent 中直接说“检测一下我电脑上有什么视频剪辑软件”即可触发 skill。
+
+支持 6 家 agent：Codex CLI / Claude Code / OpenCode / Kimi Code / Qwen Code / GLM Code。详见 [installer/README.md](./installer/README.md) 和 [references/agent-integration.md](./references/agent-integration.md)。
 
 ### 验证安装
 
@@ -64,7 +108,7 @@ pip install -r requirements.txt
 # 查看安装位置
 npx github:ygtec/cut.skill/installer list
 
-# 或直接用 Python
+# 或直接用 Python（方式 3 用户）
 cd ~/.claude/skills/cut/scripts  # 路径因 agent 而异
 python -m cut.cli detect
 ```

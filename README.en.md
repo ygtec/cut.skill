@@ -35,6 +35,16 @@ curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/inst
 curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
 ```
 
+**For users in China (unstable GitHub connection)**:
+
+```bash
+# Option A: download the script via mirror
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+# Option B: tell git clone to use mirror
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --mirror https://gh-proxy.com/
+```
+
 **Option 2: npx directly from GitHub** (requires Node.js 18+)
 
 ```bash
@@ -44,19 +54,53 @@ npx github:ygtec/cut.skill/installer install
 # Install to all 6 agents
 npx github:ygtec/cut.skill/installer install --all
 
-# Install to a specific agent
-npx github:ygtec/cut.skill/installer install --agent claude
+# Use mirror for China
+npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com/
 ```
 
-**Option 3: Manual clone**
+**Option 3: Manual clone + Python** (for developers / offline)
 
 ```bash
+# 1. Clone the repo (China mirror: https://gh-proxy.com/https://github.com/ygtec/cut.skill.git)
 git clone https://github.com/ygtec/cut.skill.git
 cd cut.skill/scripts
+
+# 2. Install Python dependencies
 pip install -r requirements.txt
+# Full install (with optional deps: pymiere/flask/mcp)
+pip install -e ".[all]"
+
+# 3. Verify installation
+python -m cut.cli detect
+# Should print detected JianYing/CapCut/Premiere installations
+
+# 4. Start using
+python -m cut.cli list-drafts              # List JianYing projects
+python -m cut.cli get-state --backend jianying --project <name>
+python -m cut.cli split --backend jianying --project <name> --track 0 --at 5s
 ```
 
-The installer supports 6 agents: Codex CLI / Claude Code / OpenCode / Kimi Code / Qwen Code / GLM Code. See [installer/README.md](./installer/README.md) for details.
+To integrate cut.skill with your agent tools (auto-create skill directories, update config files), run from the repo root:
+
+```bash
+node installer/cli.mjs install --all --source .
+```
+
+### Integrate with Agents
+
+cut.skill can auto-install to 6 agents (creates skill directories, updates config files):
+
+```bash
+# Auto-detect installed agent tools and install
+npx github:ygtec/cut.skill/installer install
+
+# Or specify agents
+npx github:ygtec/cut.skill/installer install --agent claude,codex
+```
+
+After installation, just say "detect what video editing software I have" in your agent to trigger the skill.
+
+Supports 6 agents: Codex CLI / Claude Code / OpenCode / Kimi Code / Qwen Code / GLM Code. See [installer/README.md](./installer/README.md) and [references/agent-integration.md](./references/agent-integration.md).
 
 ### Verify Installation
 
@@ -64,7 +108,7 @@ The installer supports 6 agents: Codex CLI / Claude Code / OpenCode / Kimi Code 
 # List installed locations
 npx github:ygtec/cut.skill/installer list
 
-# Or use Python directly
+# Or use Python directly (Option 3 users)
 cd ~/.claude/skills/cut/scripts  # path varies by agent
 python -m cut.cli detect
 ```
