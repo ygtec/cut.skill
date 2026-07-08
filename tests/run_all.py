@@ -12,6 +12,7 @@ TESTS = [
     ("test_cli.py", "CLI 命令行"),
     ("test_http.py", "HTTP API"),
     ("test_regression.py", "Bug 修复回归测试"),
+    ("test_pro.py", "专业剪辑能力（一键成片/爆款模板/调色）"),
 ]
 
 
