@@ -77,7 +77,7 @@ GLM 根据 `SKILL.md` 的 `description` 字段自动触发。本 skill 已包含
 > 自动做个 vlog 混剪
 ```
 
-GLM 会自动调用 `cut.detect` / `cut.get_state` / `cut.add_text` 等工具。
+GLM 会自动调用 `cut.list_backends` / `cut.get_state` / `cut.add_text` 等工具。
 
 ## 推荐工作流
 
@@ -100,8 +100,10 @@ GLM 调用 cut.skill 的标准 4 步流程：
 ```bash
 python -m cut.cli detect
 python -m cut.cli get-state --backend jianying --project my_vlog
+python -m cut.cli plan "自动做一个60秒旅行vlog，适合抖音" --backend jianying --project my_vlog
 python -m cut.cli split --backend jianying --project my_vlog --track 0 --at 5s
 python -m cut.cli add-text --backend jianying --project my_vlog --content "Hello" --start 0 --duration 3000000
+python -m cut.cli qa --output out.mp4 --expected-duration 60s
 ```
 
 ### Python 直接调用（复杂批量操作）

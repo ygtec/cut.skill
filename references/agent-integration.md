@@ -35,7 +35,7 @@ python -m cut.cli detect
 
 ## 1. Codex CLI
 
-Codex 读取 `AGENTS.md`（项目根目录）和 `skills/` 目录。
+Codex 读取项目级 `.agents/skills/<name>/SKILL.md` 或用户级 `~/.agents/skills/<name>/SKILL.md`，并可使用 `agents/openai.yaml` 元数据。
 
 ### 配置
 
@@ -72,11 +72,11 @@ draft.save()
 ```
 ```
 
-或者把 `cut/SKILL.md` 软链到 `skills/cut/SKILL.md`：
+或者把 `cut/SKILL.md` 软链到 `.agents/skills/cut/SKILL.md`：
 
 ```bash
-mkdir -p skills
-ln -s /path/to/cut skills/cut
+mkdir -p .agents/skills
+ln -s /path/to/cut .agents/skills/cut
 ```
 
 ### 使用
@@ -148,7 +148,7 @@ OpenCode 是开源终端 agent，支持 skill 与 MCP。
 }
 ```
 
-或把 `cut/` 目录放到 `~/.opencode/skills/`。
+或把 `cut/` 目录放到用户级 `~/.config/opencode/skills/`，或项目级 `.opencode/skills/`。
 
 ### 配置 MCP
 
@@ -175,7 +175,7 @@ OpenCode 会自动检测 skill 与 MCP，对话中直接说：
 
 ## 4. Kimi Code
 
-Kimi Code (Moonshot) 使用 `kimi-skills.yaml` 配置。
+Kimi Code (Moonshot) 可使用 `~/.kimi/skills.yaml` 配置。
 
 ### 配置
 
@@ -215,24 +215,15 @@ mcp_servers:
 
 ## 5. Qwen Code
 
-Qwen Code (阿里通义) 使用 `qwen-skills.json` 配置。
+Qwen Code (阿里通义) 可扫描 `~/.qwen/skills/` 或项目级 `.qwen/skills/`。
 
 ### 配置
 
-在 `~/.qwen/skills.json` 中：
+创建目录或软链：
 
-```json
-{
-  "skills": [
-    {
-      "name": "cut",
-      "path": "/path/to/cut",
-      "description": "视频剪辑操控（剪映 + Premiere）",
-      "triggers": ["剪映", "CapCut", "Premiere", "视频剪辑", "字幕", "转场", "特效"],
-      "entry": "SKILL.md"
-    }
-  ]
-}
+```bash
+mkdir -p ~/.qwen/skills
+ln -s /path/to/cut ~/.qwen/skills/cut
 ```
 
 ### MCP 配置
@@ -326,7 +317,7 @@ mkdir -p ~/.skills
 cp -r cut ~/.skills/cut
 
 # 然后各家 agent 配置中引用
-# Codex:    ln -s ~/.skills/cut ./skills/cut
+# Codex:    ln -s ~/.skills/cut .agents/skills/cut
 # Claude:   ln -s ~/.skills/cut .claude/skills/cut
 # GLM:      ln -s ~/.skills/cut ~/.glm/skills/cut
 # Kimi:     path: ~/.skills/cut
@@ -342,7 +333,7 @@ cp -r cut ~/.skills/cut
 
 > "检测一下我电脑上有什么视频剪辑软件"
 
-正确响应：调用 `cut detect` 或 `cut.list_backends`，返回剪映/Premiere 安装情况。
+正确响应：调用 CLI `detect` 或 MCP `cut.list_backends`，返回剪映/Premiere 安装情况。
 
 如果 agent 没有触发 cut skill：
 1. 检查 skill 路径是否正确
@@ -404,7 +395,7 @@ pip install -r requirements.txt
 
 # 3. 配置各家 agent
 # Codex
-mkdir -p skills && ln -sf "$CUT_SKILL_DIR" skills/cut
+mkdir -p .agents/skills && ln -sf "$CUT_SKILL_DIR" .agents/skills/cut
 
 # Claude Code
 mkdir -p .claude/skills && ln -sf "$CUT_SKILL_DIR" .claude/skills/cut
@@ -424,20 +415,8 @@ skills:
 EOF
 
 # Qwen
-mkdir -p ~/.qwen
-cat > ~/.qwen/skills.json <<EOF
-{
-  "skills": [
-    {
-      "name": "cut",
-      "path": "$CUT_SKILL_DIR",
-      "description": "视频剪辑操控（剪映 + Premiere）",
-      "triggers": ["剪映", "CapCut", "Premiere", "视频剪辑", "字幕", "转场", "特效"],
-      "entry": "SKILL.md"
-    }
-  ]
-}
-EOF
+mkdir -p ~/.qwen/skills
+ln -sf "$CUT_SKILL_DIR" ~/.qwen/skills/cut
 
 # 4. 验证
 PYTHONPATH="$CUT_SKILL_DIR/scripts" python -m cut.cli detect

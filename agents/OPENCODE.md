@@ -1,6 +1,6 @@
 # OpenCode 入口
 
-OpenCode 通过 `opencode.json` 加载 skill 与 MCP server。
+OpenCode 通过用户级 `~/.config/opencode/skills/` 或项目级 `.opencode/skills/` 加载 skill，也可配置 MCP server。
 
 ## 配置
 
@@ -14,11 +14,11 @@ OpenCode 通过 `opencode.json` 加载 skill 与 MCP server。
 }
 ```
 
-或软链到 `~/.opencode/skills/cut`：
+或软链到 `~/.config/opencode/skills/cut`：
 
 ```bash
-mkdir -p ~/.opencode/skills
-ln -s /path/to/cut ~/.opencode/skills/cut
+mkdir -p ~/.config/opencode/skills
+ln -s /path/to/cut ~/.config/opencode/skills/cut
 ```
 
 ### 方式 2：MCP Server（推荐）
@@ -45,11 +45,13 @@ OpenCode 会自动检测 skill 与 MCP，对话中直接说：
 
 ```
 > 检测一下我电脑上有什么视频剪辑软件
+> 自动做一个 60 秒旅行 vlog，适合抖音
 > 帮我在剪映 my_vlog 项目第 5 秒切一刀
 > 给视频加个淡入转场
+> 导出后帮我做质量检查
 ```
 
-OpenCode 会自动调用 `cut.detect` / `cut.split` / `cut.add_transition`。
+OpenCode 会自动调用 `cut.list_backends` / `cut.split` / `cut.add_transition`。
 
 ## 关键说明
 

@@ -250,6 +250,37 @@ effects.add_video_effect(0, 0, "Lumetri Color")
 export.export_to_file("/path/to/out.mp4", preset="h264_1080p")
 ```
 
+## 14. plan — 一句话生成专业剪辑计划
+
+```bash
+python -m cut.cli plan "剪成30分钟影视解说长视频，沉稳电影感" \
+    --backend premiere
+```
+
+MCP：
+
+```json
+{"tool": "cut.create_plan", "input": {
+  "backend": "premiere",
+  "brief": "剪成30分钟影视解说长视频，沉稳电影感"
+}}
+```
+
+## 15. qa — 导出后质量验收
+
+```bash
+python -m cut.cli qa --output /path/to/out.mp4 --expected-duration 30min
+```
+
+MCP：
+
+```json
+{"tool": "cut.quality_check", "input": {
+  "output": "/path/to/out.mp4",
+  "expected_duration_us": 1800000000
+}}
+```
+
 ## 15. 常见问题
 
 ### pymiere 连接失败

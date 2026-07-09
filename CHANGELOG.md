@@ -7,6 +7,26 @@ All notable changes to this project will be documented in this file.
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [1.2.0] - 2026-07-09
+
+### 新增 | Added
+
+- `cut.director`：从一句话生成专业剪辑执行计划，覆盖长视频/短视频、平台、目标时长、节奏、字幕、混音、调色、导出和 QA。
+- `cut.quality`：导出后质量验收，检查 ffprobe 可读性、时长、码率、视频/音频流、分辨率和帧率。
+- CLI 新增 `plan` 与 `qa` 命令；MCP 新增 `cut.create_plan` 与 `cut.quality_check`。
+- `references/professional-workflow.md`：专业剪辑计划与导出 QA 参考。
+- `agents/openai.yaml`：Codex/OpenAI skill UI 元数据。
+- `tests/test_agent_compat.py` 与 `tests/test_professional_workflow.py`，测试套件扩展到 9 组，并兼容远程 main 的专业功能测试。
+
+### 修复 | Fixed
+
+- Windows 上 `tests/run_all.py` 统一使用 UTF-8 子进程输出，避免 GBK 终端因 `✓/✗` 崩溃。
+- `npm test` 修正为从仓库根目录运行 `tests/run_all.py`。
+- `SKILL.md` frontmatter 移除非便携 `compatibility` key，兼容严格 skill 加载器。
+- OpenCode 安装路径改为用户级 `~/.config/opencode/skills/cut` 与项目级 `.opencode/skill/cut`。
+- Qwen 安装方式改为 skill 目录扫描，不再写入非标准 `skills.json`。
+- Agent 文档统一使用真实 MCP 工具名 `cut.list_backends`。
+
 ## [1.1.0] - 2026-07-07
 
 ### 修复 | Fixed

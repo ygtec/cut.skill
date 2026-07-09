@@ -118,6 +118,16 @@ def create_app():
         body = request.get_json(silent=True) or {}
         return jsonify(dispatch_tool("cut.export", body))
 
+    @app.route("/plan", methods=["POST"])
+    def create_plan():
+        body = request.get_json(silent=True) or {}
+        return jsonify(dispatch_tool("cut.create_plan", body))
+
+    @app.route("/qa", methods=["POST"])
+    def quality_check():
+        body = request.get_json(silent=True) or {}
+        return jsonify(dispatch_tool("cut.quality_check", body))
+
     return app
 
 
@@ -138,6 +148,8 @@ def main():
     print("  POST /effect          添加特效")
     print("  POST /audio           音频操作")
     print("  POST /export          导出渲染")
+    print("  POST /plan            生成专业剪辑执行计划")
+    print("  POST /qa              导出后质量验收")
     print("  POST /call/<tool>     统一调用入口（与 MCP 同 schema）")
     app.run(host=host, port=port, debug=False)
 

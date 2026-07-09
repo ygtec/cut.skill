@@ -14,6 +14,8 @@ agent 通过 shell 调用本模块完成所有剪辑操作。
     python -m cut.cli split --backend jianying --project my_vlog --track 0 --at 00:00:05.000
     python -m cut.cli add-text --backend jianying --project my_vlog --content "Hello" --start 0 --duration 3000000
     python -m cut.cli export --backend jianying --project my_vlog --output out.mp4 --method ffmpeg
+    python -m cut.cli plan "自动做一个60秒旅行vlog，适合抖音"
+    python -m cut.cli qa --output out.mp4 --expected-duration 60s
 """
 from __future__ import annotations
 
@@ -39,6 +41,8 @@ def _parse_time(s):
     s = str(s).strip()
     if s.endswith("s") and not s.endswith("ms"):
         return int(float(s[:-1]) * 1_000_000)
+    if s.endswith("min"):
+        return int(float(s[:-3]) * 60_000_000)
     if s.endswith("ms"):
         return int(float(s[:-2]) * 1000)
     if s.endswith("us"):
@@ -316,6 +320,29 @@ def cmd_export(args):
         from .premiere import export as E
         result = E.export_to_file(args.output, preset=args.preset)
         _print_json(result)
+
+def cmd_plan(args):
+    from .director import create_edit_plan
+
+    assets = []
+    for p in args.asset or []:
+        assets.append({"path": p})
+    plan = create_edit_plan(args.brief, assets, backend=args.backend, project=args.project)
+    _print_json(plan)
+
+
+def cmd_qa(args):
+    from .quality import analyze_export
+
+    expected = _parse_time(args.expected_duration) if args.expected_duration else None
+    report = analyze_export(
+        args.output,
+        expected_duration_us=expected,
+        min_video_bitrate=args.min_video_bitrate,
+    )
+    _print_json(report)
+    if not report.get("success"):
+        sys.exit(2)
 
 
 # ===========================================================================
@@ -631,6 +658,20 @@ def build_parser():
     sp.add_argument("--method", default="ffmpeg", choices=["ui", "ffmpeg"], help="剪映专用")
     sp.add_argument("--preset", default="h264_1080p", help="Premiere 预设")
     sp.set_defaults(func=cmd_export)
+    # plan
+    sp = sub.add_parser("plan", help="从一句话生成专业剪辑执行计划")
+    sp.add_argument("brief", help="用户剪辑需求")
+    sp.add_argument("--backend", default="jianying", choices=["jianying", "capcut", "premiere"])
+    sp.add_argument("--project")
+    sp.add_argument("--asset", action="append", help="素材文件路径，可重复")
+    sp.set_defaults(func=cmd_plan)
+
+    # qa
+    sp = sub.add_parser("qa", help="导出后成片质量验收")
+    sp.add_argument("--output", required=True, help="导出文件路径")
+    sp.add_argument("--expected-duration", help="期望时长，支持 60s / 00:01:00 / 微秒")
+    sp.add_argument("--min-video-bitrate", type=int, default=1_000_000)
+    sp.set_defaults(func=cmd_qa)
 
     # ===== 专业剪辑命令（基于剪映大神工作流调研）=====
 

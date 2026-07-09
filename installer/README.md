@@ -108,11 +108,11 @@ npx github:ygtec/cut.skill/installer <command> [options]
 
 | Agent | User-level path | Project-level path | Config file |
 |---|---|---|---|
-| Codex CLI | `~/.codex/skills/cut/` | `./skills/cut/` | — |
+| Codex CLI | `~/.agents/skills/cut/` | `./.agents/skills/cut/` | — |
 | Claude Code | `~/.claude/skills/cut/` | `./.claude/skills/cut/` | — |
-| OpenCode | `~/.opencode/skills/cut/` | `./.opencode/skills/cut/` | — |
+| OpenCode | `~/.config/opencode/skills/cut/` | `./.opencode/skills/cut/` | — |
 | Kimi Code | `~/.kimi/skills/cut/` | — | `~/.kimi/skills.yaml` |
-| Qwen Code | `~/.qwen/skills/cut/` | — | `~/.qwen/skills.json` |
+| Qwen Code | `~/.qwen/skills/cut/` | `./.qwen/skills/cut/` | — |
 | GLM Code | `~/.glm/skills/cut/` | `./skills/cut/` | — |
 
 ## Examples
@@ -166,7 +166,7 @@ Output:
 ```
 cut.skill 安装位置：
 
-  ✓ Codex CLI       [user] /home/user/.codex/skills/cut
+  ✓ Codex CLI       [user] /home/user/.agents/skills/cut
   ✓ Claude Code     [user] /home/user/.claude/skills/cut
   ✓ GLM Code        [user] /home/user/.glm/skills/cut
 ```
@@ -190,7 +190,7 @@ npx github:ygtec/cut.skill/installer update
 1. **Download**: `git clone` (preferred) or HTTPS zip download
 2. **Detect**: Check which agent tools are installed (`codex`, `claude`, etc.)
 3. **Install**: Copy skill files to each agent's skill directory
-4. **Configure**: For Kimi/Qwen, update their config files (`skills.yaml` / `skills.json`)
+4. **Configure**: For Kimi, update `skills.yaml`; directory-scanning agents load `SKILL.md` from their skills folder
 5. **Verify**: Check `SKILL.md` exists in each target directory
 
 ## Files

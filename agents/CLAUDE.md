@@ -31,7 +31,9 @@
 ```bash
 python -m cut.cli detect
 python -m cut.cli get-state --backend jianying --project my_vlog
+python -m cut.cli plan "自动做一个60秒旅行vlog，适合抖音" --backend jianying --project my_vlog
 python -m cut.cli split --backend jianying --project my_vlog --track 0 --at 5s
+python -m cut.cli qa --output out.mp4 --expected-duration 60s
 ```
 
 #### 3. Python 直接调用

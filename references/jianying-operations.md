@@ -232,7 +232,46 @@ python -m cut.cli export --backend jianying --project my_vlog \
 
 > 剪映没有命令行导出 API。复杂项目建议用 `ui` 方法或让用户在剪映中手动导出。
 
-## 15. Python 直接调用
+## 15. plan — 一句话生成专业剪辑计划
+
+```bash
+python -m cut.cli plan "自动做一个60秒旅行vlog，适合抖音，节奏轻快" \
+    --backend jianying --project my_vlog \
+    --asset /path/to/clip.mp4 \
+    --asset /path/to/bgm.mp3
+```
+
+返回 `format`、`target_platform`、`target_duration_us`、`style`、`story_structure` 与 `steps`。
+agent 应先读计划，再执行具体的 import/split/text/audio/effect/export 动作。
+
+MCP：
+
+```json
+{"tool": "cut.create_plan", "input": {
+  "backend": "jianying",
+  "project": "my_vlog",
+  "brief": "自动做一个60秒旅行vlog，适合抖音"
+}}
+```
+
+## 16. qa — 导出后质量验收
+
+```bash
+python -m cut.cli qa --output /path/to/out.mp4 --expected-duration 60s
+```
+
+MCP：
+
+```json
+{"tool": "cut.quality_check", "input": {
+  "output": "/path/to/out.mp4",
+  "expected_duration_us": 60000000
+}}
+```
+
+QA 会检查 ffprobe 可读性、时长、码率、视频/音频流、分辨率和帧率。
+
+## 17. Python 直接调用
 
 ```python
 from cut.jianying.draft import Draft
@@ -268,7 +307,7 @@ draft.save()
 print("完成。请在剪映中重新打开项目查看。")
 ```
 
-## 16. 错误处理
+## 18. 错误处理
 
 | 错误 | 原因 | 解决 |
 |---|---|---|
@@ -279,7 +318,7 @@ print("完成。请在剪映中重新打开项目查看。")
 | `IndexError: track_index` | 轨道索引越界 | 先 `get-state` 查看轨道数 |
 | `ValueError: 切点不在片段内` | `--at` 不在 segment 范围 | 先 `get-timeline` 查看片段范围 |
 
-## 17. 最佳实践
+## 19. 最佳实践
 
 1. **修改前先 get-state**：了解项目当前结构
 2. **用 --dry-run 预览**：复杂操作先看会不会改坏

@@ -231,6 +231,37 @@ TOOLS = [
             "required": ["output"],
         },
     ),
+    Tool(
+        name="cut.create_plan",
+        description="从一句话需求生成专业剪辑执行计划，覆盖长视频/短视频、节奏、字幕、混音、调色、导出和 QA。",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "brief": {"type": "string", "description": "用户的一句话剪辑需求"},
+                "backend": {"type": "string", "enum": ["jianying", "capcut", "premiere"], "default": "jianying"},
+                "project": {"type": "string", "description": "项目名"},
+                "assets": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "素材列表，可包含 path/duration_us/type/role",
+                },
+            },
+            "required": ["brief"],
+        },
+    ),
+    Tool(
+        name="cut.quality_check",
+        description="导出后成片质量验收，检查时长、码率、视频/音频流、分辨率和帧率。",
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "output": {"type": "string", "description": "导出文件路径"},
+                "expected_duration_us": {"type": "integer"},
+                "min_video_bitrate": {"type": "integer", "default": 1000000},
+            },
+            "required": ["output"],
+        },
+    ),
 ]
 
 
@@ -403,6 +434,23 @@ def dispatch_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
         elif backend == "premiere":
             from .premiere import export as E
             return E.export_to_file(args["output"], preset=args.get("preset", "h264_1080p"))
+
+    elif name == "cut.create_plan":
+        from .director import create_edit_plan
+        return create_edit_plan(
+            args["brief"],
+            args.get("assets") or [],
+            backend=backend,
+            project=args.get("project"),
+        )
+
+    elif name == "cut.quality_check":
+        from .quality import analyze_export
+        return analyze_export(
+            args["output"],
+            expected_duration_us=args.get("expected_duration_us"),
+            min_video_bitrate=int(args.get("min_video_bitrate", 1_000_000)),
+        )
 
     return {"error": f"未知工具: {name}"}
 

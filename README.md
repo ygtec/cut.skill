@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-6%2F6%20passed-brightgreen.svg)](#测试)
+[![Tests](https://img.shields.io/badge/tests-8%2F8%20passed-brightgreen.svg)](#测试)
 
 ## 特性
 
@@ -24,6 +24,8 @@
 - **4 种集成形态**：纯文档 / CLI / MCP Server / HTTP API
 - **多家 agent 适配**：Codex / Claude / OpenCode / Kimi / Qwen / GLM
 - **上下文感知**：反向读取项目状态、素材池、时间轴、选中片段
+- **专业导演层**：一句话生成长视频/短视频剪辑计划，覆盖节奏、字幕、混音、调色、导出与 QA
+- **导出验收**：用 ffprobe 检查时长、码率、视频/音频流、分辨率和帧率
 - **安全设计**：原子写入、自动备份、dry-run 预览、JSON 校验
 
 详见 [`references/pro-features.md`](./references/pro-features.md)
@@ -147,6 +149,10 @@ python -m cut.cli detect
 # 读取项目状态（修改前必做）
 python -m cut.cli get-state --backend jianying --project my_vlog
 
+# 一句话生成专业剪辑计划
+python -m cut.cli plan "自动做一个60秒旅行vlog，适合抖音，节奏轻快" \
+    --backend jianying --project my_vlog
+
 # 导入视频
 python -m cut.cli import --backend jianying --project my_vlog \
     --type video --path /path/to/clip.mp4
@@ -161,13 +167,18 @@ python -m cut.cli add-text --backend jianying --project my_vlog \
 # 导出
 python -m cut.cli export --backend jianying --project my_vlog \
     --output out.mp4 --method ffmpeg
+
+# 导出后 QA
+python -m cut.cli qa --output out.mp4 --expected-duration 60s
 ```
 
 ### MCP
 
 ```json
 {"tool": "cut.get_state", "input": {"backend": "jianying", "project": "my_vlog"}}
+{"tool": "cut.create_plan", "input": {"backend": "jianying", "brief": "自动做一个60秒旅行vlog，适合抖音"}}
 {"tool": "cut.split", "input": {"backend": "jianying", "project": "my_vlog", "track_index": 0, "at_us": 5000000}}
+{"tool": "cut.quality_check", "input": {"output": "out.mp4", "expected_duration_us": 60000000}}
 ```
 
 ### Python
@@ -218,9 +229,11 @@ cut/
 │   ├── cut/
 │   │   ├── platform.py            # 跨平台检测
 │   │   ├── context.py             # 统一上下文感知接口
-│   │   ├── cli.py                 # cut-cli 命令行（14 命令）
-│   │   ├── mcp_server.py          # MCP Server（12 工具）
-│   │   ├── http_api.py            # Flask HTTP API（14 路由）
+│   │   ├── cli.py                 # cut-cli 命令行（22 命令）
+│   │   ├── mcp_server.py          # MCP Server（14 工具）
+│   │   ├── http_api.py            # Flask HTTP API（16 路由）
+│   │   ├── director.py            # 一句话生成专业剪辑计划
+│   │   ├── quality.py             # 导出后质量验收
 │   │   ├── jianying/              # 剪映后端
 │   │   └── premiere/              # Premiere 后端
 │   ├── requirements.txt
@@ -255,7 +268,7 @@ agent 适配层（Codex/Claude/OpenCode/Kimi/Qwen/GLM）
         ↓
 集成形态层（CLI / MCP / HTTP / 纯文档）
         ↓
-统一操作接口（import / split / trim / text / transition / effect / audio / export）
+统一操作接口（plan / import / split / trim / text / transition / effect / audio / export / qa）
         ↓
 后端实现层（剪映 draft 操控 / Premiere pymiere）
         ↓
@@ -289,6 +302,14 @@ state = get_project_state(backend="jianying", project_name="my_vlog")
 
 Premiere 有官方扩展机制（CEP + ExtendScript），pymiere 已封装好大部分常用操作。本 skill 通过 pymiere 与运行中的 Premiere 通信，所有操作实时反映在 UI 上。
 
+### 专业剪辑导演层
+
+`cut.director.create_edit_plan()` 会把一句话需求转成可执行计划：识别长视频/短视频、平台、目标时长、节奏、叙事结构，并安排素材导入、粗剪、字幕、混音、调色、导出与 QA。它是确定性计划器，适合让 agent 先规划再调用具体 CLI/MCP 动作。
+
+### 导出质量验收
+
+`cut.quality.analyze_export()` 使用 ffprobe 输出或传入的探测 JSON，检查导出文件时长、码率、视频/音频流、分辨率和帧率。所有自动导出流程都应在最后跑 QA。
+
 ## 测试
 
 ```bash
@@ -296,16 +317,19 @@ cd cut.skill
 python tests/run_all.py
 ```
 
-测试覆盖（6 个套件，所有断言通过）：
+测试覆盖（8 个套件，所有断言通过）：
 
 | 套件 | 描述 | 项数 |
 |---|---|---|
 | `test_draft.py` | Draft 解析、切分、字幕、备份 | 4 |
 | `test_e2e.py` | 端到端工作流：导入→切分→字幕→转场→特效→ducking→保存重读→反向读取 | 20 |
-| `test_mcp.py` | MCP 12 工具的 dispatch_tool 验证 | 14 |
-| `test_cli.py` | CLI 14 命令的 help、时间格式、dry-run、错误处理 | 10 |
-| `test_http.py` | HTTP API 14 路由端到端验证 | 10 |
+| `test_mcp.py` | MCP 14 工具的 dispatch_tool 验证 | 16 |
+| `test_cli.py` | CLI 22 命令的 help、时间格式、dry-run、错误处理、plan | 11 |
+| `test_pro.py` | 一键成片、爆款模板、LUT、卡点、专业特效等能力 | 4 |
+| `test_http.py` | HTTP API 16 路由端到端验证 | 11 |
 | `test_regression.py` | Bug 修复回归测试 | 13 |
+| `test_agent_compat.py` | Agent 兼容路径、工具名、skill 元数据 | 4 |
+| `test_professional_workflow.py` | 专业剪辑计划与导出 QA | 3 |
 
 所有测试不依赖剪映/Premiere 实际运行，纯 Python 验证 draft 操控逻辑。
 
@@ -351,6 +375,7 @@ python tests/run_all.py
 | 查 Premiere 操作 | `references/premiere-operations.md` |
 | 跨平台问题 | `references/cross-platform.md` |
 | 实现上下文感知 | `references/context-awareness.md` |
+| 一句话专业剪辑计划与导出 QA | `references/professional-workflow.md` |
 | 集成到某 agent | `references/agent-integration.md` |
 | 看完整示例 | `examples/*.py` |
 | 贡献代码 | `CONTRIBUTING.md` |

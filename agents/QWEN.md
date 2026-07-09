@@ -1,28 +1,18 @@
 # Qwen Code 入口
 
-Qwen Code（阿里通义）通过 `~/.qwen/skills.json` 加载 skill。
+Qwen Code（阿里通义）通过 `~/.qwen/skills/cut/` 或项目级 `.qwen/skills/cut/` 加载 skill，也可配置 MCP。
 
 ## 配置
 
-### 方式 1：Skill
+### 方式 1：Skill 目录
 
-```json
-{
-  "skills": [
-    {
-      "name": "cut",
-      "path": "/path/to/cut",
-      "description": "视频剪辑操控（剪映 + Premiere）",
-      "triggers": [
-        "剪映", "CapCut", "JianYing", "Premiere", "Pr",
-        "视频剪辑", "时间轴", "轨道", "片段",
-        "字幕", "转场", "特效", "调色", "混音",
-        "渲染导出", "vlog", "教学视频"
-      ],
-      "entry": "SKILL.md"
-    }
-  ]
-}
+```bash
+mkdir -p ~/.qwen/skills
+ln -s /path/to/cut ~/.qwen/skills/cut
+
+# 或项目级
+mkdir -p .qwen/skills
+ln -s /path/to/cut .qwen/skills/cut
 ```
 
 ### 方式 2：MCP Server
@@ -58,7 +48,9 @@ Qwen Code 会根据 triggers 自动触发。对话中：
 ```bash
 python -m cut.cli detect
 python -m cut.cli get-state --backend jianying --project my_vlog
+python -m cut.cli plan "自动做一个60秒旅行vlog，适合抖音" --backend jianying --project my_vlog
 python -m cut.cli add-text --backend jianying --project my_vlog --content "你好" --start 0 --duration 3000000
+python -m cut.cli qa --output out.mp4 --expected-duration 60s
 ```
 
 ### Python

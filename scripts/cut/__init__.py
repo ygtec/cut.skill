@@ -12,15 +12,15 @@
 - mcp_server: MCP Server
 - http_api: Flask HTTP API
 """
-from . import platform, context
+from . import platform, context, director, quality
 from .jianying import Draft
 from .jianying import materials, segments, text, effects, audio, export
 from . import premiere
 
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 
 __all__ = [
-    "platform", "context", "premiere",
+    "platform", "context", "director", "quality", "premiere",
     "Draft", "materials", "segments", "text", "effects", "audio", "export",
     "__version__",
 ]

@@ -6,6 +6,7 @@
 - get-state / list-materials / get-timeline (用临时项目)
 - import / split / add-text / add-transition / add-effect / set-audio
 - export --method ffmpeg (空场景应失败但不崩溃)
+- plan / qa 新命令 help
 - --dry-run 模式
 - --json 输出格式
 - 时间格式解析（us/s/ms/HH:MM:SS）
@@ -16,6 +17,11 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
@@ -50,6 +56,10 @@ def test_help():
     assert "get-state" in out
     assert "split" in out
     assert "export" in out
+    assert "plan" in out
+    assert "qa" in out
+    assert "auto-edit" in out
+    assert "apply-template" in out
     print(f"[2] --help: 列出所有命令")
 
 
@@ -57,7 +67,9 @@ def test_subcommand_help():
     """每个子命令都要有 help。"""
     cmds = ["detect", "list-drafts", "get-state", "list-materials", "get-timeline",
             "import", "add-segment", "split", "trim", "add-text",
-            "add-transition", "add-effect", "set-audio", "export"]
+            "add-transition", "add-effect", "set-audio", "export", "plan", "qa",
+            "auto-edit", "apply-template", "add-lut", "beat-sync", "add-huazi",
+            "pro-transition"]
     for c in cmds:
         code, out, err = run_cli(c, "--help", expect_code=0)
         assert "usage:" in out.lower() or "--help" in out
@@ -136,6 +148,7 @@ def test_time_formats(tmp: Path):
         ("2500000", 2_500_000),       # us 整数
         ("2.5s", 2_500_000),           # 秒
         ("2500ms", 2_500_000),         # 毫秒
+        ("0.0416667min", 2_500_002),    # 分钟
         ("00:00:02.500", 2_500_000),   # HH:MM:SS.mmm
     ]
     for fmt, expected_us in formats:
@@ -197,6 +210,16 @@ def test_error_handling():
     print(f"[10] error handling: 不存在的项目 → 非零退出码")
 
 
+def test_plan_command():
+    """测试一句话生成剪辑计划。"""
+    code, out, err = run_cli("plan", "自动做一个60秒旅行vlog，适合抖音，节奏轻快")
+    data = json.loads(out)
+    assert data["format"] == "short_form"
+    assert data["target_platform"] == "douyin"
+    assert data["qa_required"] is True
+    print("[11] plan: 一句话生成专业剪辑计划")
+
+
 def main():
     print("=== cut-cli 命令行测试 ===\n")
     test_detect()
@@ -210,6 +233,7 @@ def main():
         test_dry_run(tmp_p)
         test_add_text(tmp_p)
     test_error_handling()
+    test_plan_command()
     print("\n✅ 所有 CLI 测试通过")
 
 
