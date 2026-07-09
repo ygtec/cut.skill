@@ -1,7 +1,7 @@
 """测试 MCP Server 的 dispatch_tool 逻辑。
 
 不启动真正的 MCP server（需要 stdio），而是直接调用 dispatch_tool
-验证所有 12 个工具的参数解析与执行。
+验证所有工具的参数解析与执行。
 """
 import json
 import sys
@@ -43,7 +43,7 @@ def test_tool_list():
         "cut.list_backends", "cut.get_state", "cut.list_materials",
         "cut.get_timeline", "cut.import_media", "cut.split", "cut.trim",
         "cut.add_text", "cut.add_transition", "cut.add_effect",
-        "cut.set_audio", "cut.export",
+        "cut.set_audio", "cut.export", "cut.create_plan", "cut.quality_check",
     ]
     for n in expected:
         assert n in names, f"缺少工具: {n}"
@@ -52,7 +52,7 @@ def test_tool_list():
         assert t.inputSchema is not None
         assert "type" in t.inputSchema
         assert t.inputSchema["type"] == "object"
-    print(f"    所有 12 个工具定义合法")
+    print(f"    所有 {len(expected)} 个工具定义合法")
 
 
 def test_list_backends():
@@ -228,6 +228,25 @@ def test_unknown_tool():
     print(f"[14] unknown_tool: error='{r['error']}'")
 
 
+def test_create_plan():
+    r = dispatch_tool("cut.create_plan", {
+        "brief": "自动做一个60秒旅行vlog，适合抖音",
+        "backend": "jianying",
+        "assets": [{"path": "a.mp4", "duration_us": 10_000_000}],
+    })
+    assert r["format"] == "short_form"
+    assert r["target_platform"] == "douyin"
+    assert r["qa_required"] is True
+    print("[15] create_plan: ok")
+
+
+def test_quality_check_missing_file():
+    r = dispatch_tool("cut.quality_check", {"output": "missing-output-file.mp4"})
+    assert r["success"] is False
+    assert r["findings"][0]["code"] == "probe_failed"
+    print("[16] quality_check: missing file error ok")
+
+
 def main():
     print("=== MCP dispatch_tool 测试 ===\n")
     test_tool_list()
@@ -244,6 +263,8 @@ def main():
         test_add_effect(tmp_p)
         test_set_audio(tmp_p)
         test_import_media(tmp_p)
+        test_create_plan()
+        test_quality_check_missing_file()
     test_unknown_tool()
     print("\n✅ 所有 MCP 测试通过")
 

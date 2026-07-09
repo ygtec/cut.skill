@@ -1,8 +1,14 @@
 """统一测试运行器：跑所有测试并汇总结果。"""
+import os
 import subprocess
 import sys
 import time
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 TESTS_DIR = Path(__file__).parent
 TESTS = [
@@ -12,6 +18,8 @@ TESTS = [
     ("test_cli.py", "CLI 命令行"),
     ("test_http.py", "HTTP API"),
     ("test_regression.py", "Bug 修复回归测试"),
+    ("test_agent_compat.py", "Agent 兼容与 skill 元数据"),
+    ("test_professional_workflow.py", "专业剪辑导演层与导出 QA"),
 ]
 
 
@@ -20,9 +28,17 @@ def run_one(test_file: str, desc: str):
     print(f"运行: {test_file} — {desc}")
     print(f"{'='*60}")
     start = time.time()
+    env = os.environ.copy()
+    env["PYTHONUTF8"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
     r = subprocess.run(
         [sys.executable, str(TESTS_DIR / test_file)],
-        capture_output=True, text=True, cwd=str(TESTS_DIR),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        cwd=str(TESTS_DIR),
+        env=env,
     )
     elapsed = time.time() - start
     # 打印最后 15 行输出

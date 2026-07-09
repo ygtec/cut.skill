@@ -7,7 +7,7 @@
 // - install(sourceDir, scope): 把 skill 文件复制到目标位置
 // - uninstall(scope): 删除 skill 文件
 // - isInstalled(scope): 检测是否已安装
-// - updateConfig?(skillDir, scope): 可选，更新 agent 的配置文件（Kimi/Qwen 需要）
+// - updateConfig?(skillDir, scope): 可选，更新 agent 的配置文件（Kimi 需要）
 
 import { existsSync, mkdirSync, cpSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -62,7 +62,7 @@ export const AGENTS = {
   codex: {
     name: 'Codex CLI',
     detect() {
-      // Codex 用项目级 skills/ 或 ~/.codex/skills/
+      // Codex/OpenAI agent skills use .agents/skills at project or user scope.
       // 检测 codex 命令是否存在
       try {
         execSync('codex --version', { stdio: 'ignore' });
@@ -72,8 +72,8 @@ export const AGENTS = {
       }
     },
     skillDir(scope) {
-      if (scope === 'project') return join(process.cwd(), 'skills', 'cut');
-      return join(HOME, '.codex', 'skills', 'cut');
+      if (scope === 'project') return join(process.cwd(), '.agents', 'skills', 'cut');
+      return join(HOME, '.agents', 'skills', 'cut');
     },
     install(sourceDir, scope) {
       const dir = this.skillDir(scope);
@@ -128,12 +128,13 @@ export const AGENTS = {
         execSync('opencode --version', { stdio: 'ignore' });
         return true;
       } catch {
-        return existsSync(join(HOME, '.opencode'));
+        return existsSync(join(HOME, '.config', 'opencode')) ||
+               existsSync(join(HOME, '.opencode'));
       }
     },
     skillDir(scope) {
       if (scope === 'project') return join(process.cwd(), '.opencode', 'skills', 'cut');
-      return join(HOME, '.opencode', 'skills', 'cut');
+      return join(HOME, '.config', 'opencode', 'skills', 'cut');
     },
     install(sourceDir, scope) {
       const dir = this.skillDir(scope);
@@ -229,56 +230,20 @@ export const AGENTS = {
       }
     },
     skillDir(scope) {
+      if (scope === 'project') return join(process.cwd(), '.qwen', 'skills', 'cut');
       return join(HOME, '.qwen', 'skills', 'cut');
     },
     install(sourceDir, scope) {
       const dir = this.skillDir(scope);
       copySkill(sourceDir, dir);
-      this.updateConfig(dir);
       return dir;
     },
     uninstall(scope) {
       const dir = this.skillDir(scope);
       if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
-      this.removeFromConfig();
     },
     isInstalled(scope) {
       return existsSync(join(this.skillDir(scope), 'SKILL.md'));
-    },
-    configPath() {
-      return join(HOME, '.qwen', 'skills.json');
-    },
-    updateConfig(skillDir) {
-      const cfgPath = this.configPath();
-      ensureDir(dirname(cfgPath));
-      let cfg = {};
-      const raw = safeRead(cfgPath);
-      if (raw) {
-        try { cfg = JSON.parse(raw); } catch { cfg = {}; }
-      }
-      cfg.skills = cfg.skills || [];
-      // 移除已有 cut 条目
-      cfg.skills = cfg.skills.filter(s => s.name !== 'cut');
-      cfg.skills.push({
-        name: 'cut',
-        path: skillDir,
-        description: '视频剪辑操控（剪映 + Premiere）',
-        triggers: ['剪映', 'CapCut', 'Premiere', '视频剪辑', '字幕', '转场', '特效'],
-        entry: 'SKILL.md',
-      });
-      writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), 'utf-8');
-    },
-    removeFromConfig() {
-      const cfgPath = this.configPath();
-      const raw = safeRead(cfgPath);
-      if (!raw) return;
-      try {
-        const cfg = JSON.parse(raw);
-        if (Array.isArray(cfg.skills)) {
-          cfg.skills = cfg.skills.filter(s => s.name !== 'cut');
-          writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), 'utf-8');
-        }
-      } catch {}
     },
   },
 

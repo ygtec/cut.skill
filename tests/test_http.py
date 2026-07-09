@@ -41,7 +41,7 @@ def main():
     assert r.status_code == 200
     data = r.get_json()
     assert data["name"] == "cut-http-api"
-    assert len(data["tools"]) == 12
+    assert len(data["tools"]) == 14
     print(f"[1] GET /: {len(data['tools'])} tools")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -129,12 +129,23 @@ def main():
         assert len(mats) == 2
         print(f"[9] GET /materials: {len(mats)} items")
 
+        # [11] POST /plan
+        r = client.post("/plan", json={
+            "backend": "jianying",
+            "brief": "自动做一个60秒旅行vlog，适合抖音",
+        })
+        assert r.status_code == 200
+        plan = r.get_json()
+        assert plan["target_platform"] == "douyin"
+        assert plan["qa_required"] is True
+        print("[10] POST /plan: ok")
+
     # [11] 错误处理：未知 tool
     r = client.post("/call/cut.nonexistent", json={})
     # dispatch_tool 把 error 包在 JSON 里返回，HTTP 200 但 body 含 error
     data = r.get_json()
     assert "error" in data
-    print(f"[10] error handling: 未知 tool → 返回 error 字段")
+    print(f"[11] error handling: 未知 tool → 返回 error 字段")
 
     print("\n✅ 所有 HTTP API 测试通过")
 

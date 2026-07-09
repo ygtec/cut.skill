@@ -21,7 +21,7 @@ import { bold, green, red, yellow, cyan, dim } from './src/colors.mjs';
 import { AGENTS, AGENT_KEYS, detectInstalledAgents, parseAgentList } from './src/agents.mjs';
 import { downloadSkill, downloadFromLocal } from './src/download.mjs';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const HOME = homedir();
 
 // ---------------------------------------------------------------------------
@@ -286,14 +286,14 @@ function cmdList() {
   let found = false;
   for (const key of AGENT_KEYS) {
     const agent = AGENTS[key];
-    // 对 scope 不敏感的 agent（kimi/qwen 始终用固定目录）只显示一次
-    const scopes = (key === 'kimi' || key === 'qwen')
+    // 对 scope 不敏感的 agent（kimi 始终用固定目录）只显示一次
+    const scopes = (key === 'kimi')
       ? ['user']
       : ['user', 'project'];
     for (const scope of scopes) {
       if (agent.isInstalled(scope)) {
         const dir = agent.skillDir(scope);
-        const scopeLabel = (key === 'kimi' || key === 'qwen') ? 'user' : scope;
+        const scopeLabel = (key === 'kimi') ? 'user' : scope;
         console.log(green(`  ✓ ${agent.name.padEnd(15)} [${scopeLabel}] ${dim(dir)}`));
         found = true;
       }

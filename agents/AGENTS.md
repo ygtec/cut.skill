@@ -34,6 +34,11 @@ python -m cut.cli get-timeline --backend jianying --project <name>
 python -m cut.cli list-materials --backend jianying --project <name>
 ```
 
+#### 一句话专业剪辑计划
+```bash
+python -m cut.cli plan "自动做一个60秒旅行vlog，适合抖音" --backend jianying --project <name>
+```
+
 #### 编辑操作
 ```bash
 python -m cut.cli import --backend jianying --project <name> --type video --path <path>
@@ -48,6 +53,7 @@ python -m cut.cli set-audio --backend jianying --project <name> --track 1 --clip
 #### 导出
 ```bash
 python -m cut.cli export --backend jianying --project <name> --output out.mp4 --method ffmpeg
+python -m cut.cli qa --output out.mp4 --expected-duration 60s
 ```
 
 ### 时间格式

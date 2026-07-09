@@ -1,6 +1,6 @@
 {
   "name": "cut-skill-root",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Unified video editing control skill for AI agents (JianYing + Premiere). This is the root package; the actual installer is in installer/",
   "type": "module",
   "private": true,
@@ -12,7 +12,7 @@
     "install:claude": "node installer/cli.mjs install --agent claude --source .",
     "list": "node installer/cli.mjs list",
     "detect": "node installer/cli.mjs detect",
-    "test": "cd scripts && python tests/run_all.py"
+    "test": "python tests/run_all.py"
   },
   "keywords": [
     "skill",

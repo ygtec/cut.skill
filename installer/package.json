@@ -1,6 +1,6 @@
 {
   "name": "cut-skill",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Installer CLI for cut.skill — unified video editing control skill (JianYing + Premiere) for AI agents",
   "type": "module",
   "bin": {

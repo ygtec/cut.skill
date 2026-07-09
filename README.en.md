@@ -6,7 +6,7 @@ English | [中文](./README.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-6%2F6%20passed-brightgreen.svg)](#tests)
+[![Tests](https://img.shields.io/badge/tests-8%2F8%20passed-brightgreen.svg)](#tests)
 
 ## Features
 
@@ -16,6 +16,8 @@ English | [中文](./README.md)
 - **4 integration forms**: pure docs / CLI / MCP Server / HTTP API
 - **Multi-agent compatibility**: Codex / Claude / OpenCode / Kimi / Qwen / GLM
 - **Context-aware**: reverse-read project state, media pool, timeline, selection
+- **Professional director layer**: turn a one-line short-form or long-form brief into an edit plan
+- **Export QA**: validate duration, bitrate, streams, resolution, and frame rate after rendering
 - **Safe by design**: atomic writes, auto-backup, dry-run preview, JSON validation
 
 ## Quick Start
@@ -77,6 +79,10 @@ python -m cut.cli detect
 # Read project state (must do before any modification)
 python -m cut.cli get-state --backend jianying --project my_vlog
 
+# Create a professional edit plan from one sentence
+python -m cut.cli plan "Create a fast 60s travel vlog for TikTok" \
+    --backend jianying --project my_vlog
+
 # Import video
 python -m cut.cli import --backend jianying --project my_vlog \
     --type video --path /path/to/clip.mp4
@@ -91,13 +97,18 @@ python -m cut.cli add-text --backend jianying --project my_vlog \
 # Export
 python -m cut.cli export --backend jianying --project my_vlog \
     --output out.mp4 --method ffmpeg
+
+# Run post-export QA
+python -m cut.cli qa --output out.mp4 --expected-duration 60s
 ```
 
 ### MCP
 
 ```json
 {"tool": "cut.get_state", "input": {"backend": "jianying", "project": "my_vlog"}}
+{"tool": "cut.create_plan", "input": {"backend": "jianying", "brief": "Create a fast 60s travel vlog for TikTok"}}
 {"tool": "cut.split", "input": {"backend": "jianying", "project": "my_vlog", "track_index": 0, "at_us": 5000000}}
+{"tool": "cut.quality_check", "input": {"output": "out.mp4", "expected_duration_us": 60000000}}
 ```
 
 ### Python
@@ -148,9 +159,11 @@ cut/
 │   ├── cut/
 │   │   ├── platform.py            # Cross-platform detection
 │   │   ├── context.py             # Unified context-aware interface
-│   │   ├── cli.py                 # cut-cli (14 commands)
-│   │   ├── mcp_server.py          # MCP Server (12 tools)
-│   │   ├── http_api.py            # Flask HTTP API (14 routes)
+│   │   ├── cli.py                 # cut-cli (16 commands)
+│   │   ├── mcp_server.py          # MCP Server (14 tools)
+│   │   ├── http_api.py            # Flask HTTP API (16 routes)
+│   │   ├── director.py            # One-line professional edit planning
+│   │   ├── quality.py             # Post-export QA
 │   │   ├── jianying/              # JianYing backend
 │   │   └── premiere/              # Premiere backend
 │   ├── requirements.txt
@@ -219,6 +232,14 @@ No need for JianYing to be running — offline editing, most stable approach.
 
 Premiere has an official extension mechanism (CEP + ExtendScript); pymiere wraps most common operations. This skill communicates with a running Premiere instance via pymiere — all operations reflect in the UI in real time.
 
+### Professional Director Layer
+
+`cut.director.create_edit_plan()` turns a one-line brief into a deterministic edit plan: format, platform, target duration, pacing, story structure, subtitles, sound mix, color, export, and QA. Agents should plan first, then execute concrete CLI/MCP operations.
+
+### Export QA
+
+`cut.quality.analyze_export()` validates rendered files with ffprobe output: duration, bitrate, video/audio streams, resolution, and frame rate. Automated exports should run QA as the final step.
+
 ## Tests
 
 ```bash
@@ -226,16 +247,18 @@ cd cut.skill
 python tests/run_all.py
 ```
 
-Test coverage (6 suites, all assertions pass):
+Test coverage (8 suites, all assertions pass):
 
 | Suite | Description | Count |
 |---|---|---|
 | `test_draft.py` | Draft parsing, splitting, subtitles, backup | 4 |
 | `test_e2e.py` | End-to-end workflow: import → split → subtitles → transitions → effects → ducking → save → reverse read | 20 |
-| `test_mcp.py` | MCP 12 tools dispatch_tool verification | 14 |
-| `test_cli.py` | CLI 14 commands: help, time formats, dry-run, error handling | 10 |
-| `test_http.py` | HTTP API 14 routes end-to-end verification | 10 |
+| `test_mcp.py` | MCP 14 tools dispatch_tool verification | 16 |
+| `test_cli.py` | CLI 16 commands: help, time formats, dry-run, error handling, plan | 11 |
+| `test_http.py` | HTTP API 16 routes end-to-end verification | 11 |
 | `test_regression.py` | Bug-fix regression tests | 13 |
+| `test_agent_compat.py` | Agent path, tool naming, and skill metadata compatibility | 4 |
+| `test_professional_workflow.py` | Professional edit planning and export QA | 3 |
 
 All tests run without JianYing/Premiere installed — pure Python validation of draft manipulation logic.
 
@@ -281,6 +304,7 @@ All tests run without JianYing/Premiere installed — pure Python validation of 
 | Premiere operations | `references/premiere-operations.md` |
 | Cross-platform issues | `references/cross-platform.md` |
 | Context awareness | `references/context-awareness.md` |
+| One-line professional edit planning and export QA | `references/professional-workflow.md` |
 | Integrate with an agent | `references/agent-integration.md` |
 | Full examples | `examples/*.py` |
 | Contribute code | `CONTRIBUTING.md` |

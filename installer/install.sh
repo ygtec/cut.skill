@@ -209,7 +209,7 @@ install_to_dir() {
 for agent in $TARGETS; do
   case "$agent" in
     codex)
-      if [ "$SCOPE" = "project" ]; then DIR="./skills/cut"; else DIR="$HOME/.codex/skills/cut"; fi
+      if [ "$SCOPE" = "project" ]; then DIR="./.agents/skills/cut"; else DIR="$HOME/.agents/skills/cut"; fi
       install_to_dir "$DIR" "Codex CLI"
       ;;
     claude)
@@ -217,7 +217,7 @@ for agent in $TARGETS; do
       install_to_dir "$DIR" "Claude Code"
       ;;
     opencode)
-      if [ "$SCOPE" = "project" ]; then DIR="./.opencode/skills/cut"; else DIR="$HOME/.opencode/skills/cut"; fi
+      if [ "$SCOPE" = "project" ]; then DIR="./.opencode/skills/cut"; else DIR="$HOME/.config/opencode/skills/cut"; fi
       install_to_dir "$DIR" "OpenCode"
       ;;
     kimi)
@@ -240,49 +240,8 @@ EOF
       fi
       ;;
     qwen)
-      DIR="$HOME/.qwen/skills/cut"
+      if [ "$SCOPE" = "project" ]; then DIR="./.qwen/skills/cut"; else DIR="$HOME/.qwen/skills/cut"; fi
       install_to_dir "$DIR" "Qwen Code"
-      # 更新 skills.json（需要 node 或 python 来处理 JSON，这里用简单方式）
-      mkdir -p "$HOME/.qwen"
-      CONFIG="$HOME/.qwen/skills.json"
-      if command -v node >/dev/null 2>&1; then
-        node -e "
-          const fs = require('fs');
-          const path = '$CONFIG';
-          let cfg = {};
-          try { cfg = JSON.parse(fs.readFileSync(path, 'utf-8')); } catch {}
-          cfg.skills = (cfg.skills || []).filter(s => s.name !== 'cut');
-          cfg.skills.push({
-            name: 'cut',
-            path: '$DIR',
-            description: '视频剪辑操控（剪映 + Premiere）',
-            triggers: ['剪映', 'CapCut', 'Premiere', '视频剪辑', '字幕', '转场', '特效'],
-            entry: 'SKILL.md',
-          });
-          fs.writeFileSync(path, JSON.stringify(cfg, null, 2));
-        "
-      elif command -v python3 >/dev/null 2>&1; then
-        python3 -c "
-import json, os
-path = '$CONFIG'
-cfg = {}
-try:
-    with open(path) as f: cfg = json.load(f)
-except: pass
-cfg.setdefault('skills', [])
-cfg['skills'] = [s for s in cfg['skills'] if s.get('name') != 'cut']
-cfg['skills'].append({
-    'name': 'cut', 'path': '$DIR',
-    'description': '视频剪辑操控（剪映 + Premiere）',
-    'triggers': ['剪映', 'CapCut', 'Premiere', '视频剪辑', '字幕', '转场', '特效'],
-    'entry': 'SKILL.md',
-})
-os.makedirs(os.path.dirname(path), exist_ok=True)
-with open(path, 'w') as f: json.dump(cfg, f, indent=2, ensure_ascii=False)
-"
-      else
-        echo "${YELLOW}  ⚠ Qwen: 需要 node 或 python3 来更新 skills.json${RESET}"
-      fi
       ;;
     glm)
       if [ "$SCOPE" = "project" ]; then DIR="./skills/cut"; else DIR="$HOME/.glm/skills/cut"; fi

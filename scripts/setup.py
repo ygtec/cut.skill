@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="cut-skill",
-    version="1.0.0",
+    version="1.2.0",
     description="统一视频剪辑操控 skill（剪映 + Premiere）",
     author="cut.skill",
     python_requires=">=3.9",

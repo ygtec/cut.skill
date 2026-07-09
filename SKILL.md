@@ -10,11 +10,6 @@ description: >-
   涵盖视频剪辑、字幕生成、特效转场、音频处理、批量渲染、跨平台（Windows + macOS）。
   只要用户提到 剪映、CapCut、JianYing、Premiere、Pr、视频剪辑、时间轴、轨道、片段、字幕、转场、
   调色、混音、渲染导出 等任何视频后期相关词，都应优先使用本 skill。
-compatibility:
-  - Python 3.9+
-  - 剪映专业版 5.x+（Windows/macOS，draft 文件操控模式）
-  - Adobe Premiere Pro 2022+（通过 pymiere，需运行中并启用脚本接口）
-  - 可选：pyautogui（剪映导出辅助）、ffmpeg（音频预处理）
 ---
 
 # Cut — 统一的视频剪辑操控 skill
@@ -27,6 +22,13 @@ compatibility:
 > Premiere 有官方扩展机制但接入繁琐，pymiere 已封装好大部分常用操作。
 > 本 skill 把两条路径抽象成同一组动词（import / split / trim / text / transition / effect / audio / export），
 > agent 只需要学一套接口。
+
+## 兼容性
+
+- Python 3.9+
+- 剪映专业版 5.x+（Windows/macOS，draft 文件操控模式）
+- Adobe Premiere Pro 2022+（通过 pymiere，需运行中并启用脚本接口）
+- 可选：pyautogui（剪映导出辅助）、ffmpeg/ffprobe（音频预处理与导出 QA）、Flask（HTTP API）
 
 ---
 
@@ -51,8 +53,8 @@ compatibility:
 ```text
 1. detect        → 检测本机平台、剪映/Premiere 安装、活跃项目
 2. get_state     → 读取当前项目状态（素材池、轨道、片段、选中元素）
-3. <编辑动作>     → import / split / trim / text / transition / effect / audio
-4. export        → 触发渲染输出
+3. plan/edit      → 对一句话需求先生成专业剪辑计划，再执行 import / split / trim / text / transition / effect / audio
+4. export + qa    → 触发渲染输出并做成片质量验收
 ```
 
 **第 2 步是关键**：本 skill 强调"上下文感知"。在你做任何修改前，**先调一次 `cut-cli get-state` 或对应 MCP 工具**，把当前项目快照读进来，再决定下一步。盲目修改 draft 文件很容易让剪映加载失败。
@@ -110,6 +112,8 @@ Premiere 后端是**在线编辑**：必须 Premiere 处于打开状态，所有
 | `add-effect` | 应用特效（滤镜/调色/动画） | ✅ | ✅ |
 | `set-audio` | 音量/淡入淡出/降噪 | ✅ | ✅ |
 | `export` | 导出渲染（剪映需 UI 辅助） | ⚠️ | ✅ |
+| `plan` / `create_plan` | 从一句话生成专业剪辑执行计划 | ✅ | ✅ |
+| `qa` / `quality_check` | 导出后成片质量验收 | ✅ | ✅ |
 
 详细参数、返回结构、错误码见 `references/jianying-operations.md` 与 `references/premiere-operations.md`。
 
@@ -144,6 +148,18 @@ state = get_project_state(backend="jianying")  # 或 "premiere"
 agent 拿到这个快照后，再决定要不要 `split` / `trim` / `add-text`。这避免了"瞎改 draft"导致的崩溃。
 
 更多上下文接口见 `references/context-awareness.md`。
+
+## 5.5 专业剪辑导演层（一句话到执行计划）
+
+当用户只给一句话（例如"自动做个旅行 vlog"、"剪成 30 分钟影视解说"）时，不要直接堆命令。
+先调用 `python -m cut.cli plan "<用户需求>"` 或 MCP `cut.create_plan`：
+
+1. 识别长视频/短视频、平台、目标时长、节奏、叙事结构
+2. 生成 edit decision list：素材导入、粗剪、字幕、转场、混音、调色、导出、QA
+3. 先读 `get-state`，再按计划执行具体剪辑动作
+4. 导出后调用 `quality_check` 验证时长、码率、视频/音频流、分辨率、帧率
+
+导演层是确定性计划器，不替代真正素材理解；如需要镜头语义理解、ASR 或节拍检测，应结合 `examples/` 或外部识别服务生成素材标签后再规划。
 
 ---
 
@@ -270,6 +286,7 @@ print("完成。请在剪映中重新打开项目查看。")
 | 查 Premiere pymiere 操作 | `references/premiere-operations.md` |
 | 处理 Win/Mac 差异 | `references/cross-platform.md` |
 | 实现上下文感知/反向读取 | `references/context-awareness.md` |
+| 从一句话生成专业剪辑计划并做成片 QA | `references/professional-workflow.md` |
 | 集成到某个 agent 工具 | `references/agent-integration.md` |
 | 看完整端到端示例 | `examples/*.py` |
 | 看 CLI 完整命令参考 | `scripts/cut/cli.py` 顶部 docstring |
