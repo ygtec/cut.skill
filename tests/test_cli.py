@@ -18,6 +18,11 @@ import sys
 import tempfile
 from pathlib import Path
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 sys.path.insert(0, str(Path(__file__).parent))
@@ -53,6 +58,8 @@ def test_help():
     assert "export" in out
     assert "plan" in out
     assert "qa" in out
+    assert "auto-edit" in out
+    assert "apply-template" in out
     print(f"[2] --help: 列出所有命令")
 
 
@@ -60,7 +67,9 @@ def test_subcommand_help():
     """每个子命令都要有 help。"""
     cmds = ["detect", "list-drafts", "get-state", "list-materials", "get-timeline",
             "import", "add-segment", "split", "trim", "add-text",
-            "add-transition", "add-effect", "set-audio", "export", "plan", "qa"]
+            "add-transition", "add-effect", "set-audio", "export", "plan", "qa",
+            "auto-edit", "apply-template", "add-lut", "beat-sync", "add-huazi",
+            "pro-transition"]
     for c in cmds:
         code, out, err = run_cli(c, "--help", expect_code=0)
         assert "usage:" in out.lower() or "--help" in out

@@ -2,15 +2,19 @@
 
 // cut-skill — cut.skill 安装器 CLI
 //
-// 用法：
-//   npx cut-skill install [--agent <name>] [--all] [--user|--project] [--source <path>] [--repo <github>]
-//   npx cut-skill uninstall [--agent <name>] [--all]
-//   npx cut-skill list
-//   npx cut-skill update
+// 用法（推荐 npx 从 GitHub 直接跑，无需安装）：
+//   npx github:ygtec/cut.skill/installer install [--agent <name>] [--all] [--user|--project] [--source <path>] [--repo <github>]
+//   npx github:ygtec/cut.skill/installer uninstall [--agent <name>] [--all]
+//   npx github:ygtec/cut.skill/installer list
+//   npx github:ygtec/cut.skill/installer update
+//   npx github:ygtec/cut.skill/installer detect
 //
-// 不发布 npm 时也能用：
-//   npx github:ygtec/cut.skill/installer install --all
-//   # 或
+// 或本地 clone 后运行：
+//   git clone https://github.com/ygtec/cut.skill.git
+//   cd cut.skill/installer
+//   node cli.mjs install --all --source ..
+//
+// 或 curl 一键安装（不需要 Node.js）：
 //   curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
 
 import { parseArgs } from 'node:util';
@@ -31,7 +35,10 @@ const HOME = homedir();
 const HELP = `${bold('cut-skill')} v${VERSION} — cut.skill 安装器
 
 ${bold('用法：')}
-  cut-skill <command> [options]
+  npx github:ygtec/cut.skill/installer <command> [options]
+
+  ${dim('# 或本地 clone 后运行：')}
+  node cli.mjs <command> [options]
 
 ${bold('命令：')}
   ${cyan('install')}     安装 cut.skill 到指定 agent
@@ -49,37 +56,45 @@ ${bold('install 选项：')}
   ${yellow('--source <path>')}     用本地已下载的仓库，不联网下载
   ${yellow('--repo <github>')}     自定义 GitHub 仓库（默认 ygtec/cut.skill）
   ${yellow('--ref <git-ref>')}     自定义分支/tag（默认 main）
+  ${yellow('--mirror <url>')}      git clone 镜像前缀（国内可用 https://gh-proxy.com/）
   ${yellow('--force')}             覆盖已存在的安装
 
 ${bold('示例：')}
   ${dim('# 一键安装到所有检测到的 agent')}
-  cut-skill install
+  npx github:ygtec/cut.skill/installer install
 
   ${dim('# 安装到指定 agent')}
-  cut-skill install --agent claude
-  cut-skill install --agent codex,glm
+  npx github:ygtec/cut.skill/installer install --agent claude
+  npx github:ygtec/cut.skill/installer install --agent codex,glm
 
   ${dim('# 强制安装到全部 6 家 agent（即使没检测到）')}
-  cut-skill install --all
-
-  ${dim('# 安装到当前项目（而非用户目录）')}
-  cut-skill install --agent claude --project
-
-  ${dim('# 用本地已下载的仓库安装（离线）')}
-  cut-skill install --all --source /path/to/cut.skill
-
-  ${dim('# 卸载')}
-  cut-skill uninstall --agent claude
-
-  ${dim('# 查看已安装位置')}
-  cut-skill list
-
-${bold('不发布 npm 也能用：')}
-  # 用 npx 直接从 GitHub 跑
   npx github:ygtec/cut.skill/installer install --all
 
-  # 或用 curl 一键安装
+  ${dim('# 安装到当前项目（而非用户目录）')}
+  npx github:ygtec/cut.skill/installer install --agent claude --project
+
+  ${dim('# 用本地已下载的仓库安装（离线）')}
+  node cli.mjs install --all --source /path/to/cut.skill
+
+  ${dim('# 卸载')}
+  npx github:ygtec/cut.skill/installer uninstall --agent claude
+
+  ${dim('# 查看已安装位置')}
+  npx github:ygtec/cut.skill/installer list
+
+${bold('不需要 Node.js 时用 curl 一键安装：')}
   curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+${bold('国内网络不稳定时用镜像：')}
+  # 方式 A：用镜像下载脚本
+  curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+  # 方式 B：指定镜像让 git clone 走代理
+  npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com/
+
+  # 方式 C：设环境变量（一劳永逸）
+  export CUT_MIRROR=https://gh-proxy.com/
+  npx github:ygtec/cut.skill/installer install --all
 
 ${bold('文档：')}https://github.com/ygtec/cut.skill
 `;
@@ -105,6 +120,7 @@ function parseCliArgs(argv) {
         source: { type: 'string' },
         repo: { type: 'string', default: 'ygtec/cut.skill' },
         ref: { type: 'string', default: 'main' },
+        mirror: { type: 'string', default: '' },
         force: { type: 'boolean', default: false },
         help: { type: 'boolean', short: 'h', default: false },
         version: { type: 'boolean', short: 'v', default: false },
@@ -183,9 +199,10 @@ async function cmdInstall(opts) {
       process.exit(1);
     }
   } else {
-    console.log(cyan(`从 GitHub 下载：${opts.repo}@${opts.ref}`));
+    const mirrorInfo = opts.mirror ? ` (mirror: ${opts.mirror})` : '';
+    console.log(cyan(`从 GitHub 下载：${opts.repo}@${opts.ref}${mirrorInfo}`));
     try {
-      sourceDir = await downloadSkill(opts.repo, opts.ref);
+      sourceDir = await downloadSkill(opts.repo, opts.ref, opts.mirror);
     } catch (e) {
       console.error(red(e.message));
       process.exit(1);
@@ -238,7 +255,7 @@ async function cmdInstall(opts) {
   if (succeeded > 0) {
     console.log(bold('\n下一步：'));
     console.log(dim('  • 重启你的 agent 工具让它加载新 skill'));
-    console.log(dim('  • 验证安装：cut-skill list'));
+    console.log(dim('  • 验证安装：npx github:ygtec/cut.skill/installer list'));
     console.log(dim('  • 试用：在 agent 中说"检测一下我电脑上有什么视频剪辑软件"'));
   }
 
@@ -300,7 +317,7 @@ function cmdList() {
     }
   }
   if (!found) {
-    console.log(yellow('  未找到任何安装。运行 cut-skill install 开始安装。'));
+    console.log(yellow('  未找到任何安装。运行 install 命令开始安装。'));
   }
 }
 
@@ -313,7 +330,7 @@ async function cmdUpdate(opts) {
     return agent.isInstalled('user') || agent.isInstalled('project');
   });
   if (installed.length === 0) {
-    console.log(yellow('未找到已安装的 cut.skill。运行 cut-skill install 开始安装。'));
+    console.log(yellow('未找到已安装的 cut.skill。运行 install 命令开始安装。'));
     return;
   }
   // 卸载后重装
@@ -370,7 +387,7 @@ async function main() {
       break;
     default:
       console.error(red(`未知命令: ${command}`));
-      console.error(dim('运行 cut-skill --help 查看可用命令'));
+      console.error(dim('运行 --help 查看可用命令'));
       process.exit(1);
   }
 }

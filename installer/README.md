@@ -22,36 +22,72 @@ Install to all 6 agents:
 curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
 ```
 
-### Option 2: npx (requires Node.js 18+)
-
-After publishing to npm:
+**For users in China (unstable GitHub connection)**:
 
 ```bash
-npx cut-skill install --all
+# Option A: download the script via mirror
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+# Option B: tell git clone to use mirror
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --mirror https://gh-proxy.com/
 ```
 
-Or run directly from GitHub (no npm publish needed):
+### Option 2: npx from GitHub (requires Node.js 18+)
 
 ```bash
+# Install to auto-detected agents
+npx github:ygtec/cut.skill/installer install
+
+# Install to all 6 agents
 npx github:ygtec/cut.skill/installer install --all
+
+# Install to a specific agent
+npx github:ygtec/cut.skill/installer install --agent claude
+
+# Use mirror for China
+npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com/
 ```
 
-### Option 3: clone & run
+### Option 3: clone & run (offline)
 
 ```bash
+# Clone (China mirror: prefix with https://gh-proxy.com/)
 git clone https://github.com/ygtec/cut.skill.git
-cd cut.skill/installer
-node cli.mjs install --all --source ..
+cd cut.skill/scripts
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate        # macOS/Linux
+# .venv\Scripts\Activate.ps1     # Windows PowerShell
+
+# Install Python dependencies
+pip install -r requirements.txt
+pip install -e ".[all]"          # full install with optional deps
+
+# Verify
+python -m cut.cli detect
+
+# Then install to agents (from repo root)
+cd ..
+node installer/cli.mjs install --all --source .
 ```
 
 ## Commands
 
+After cloning the repo, you can run the CLI locally:
+
 ```bash
-cut-skill install [options]    # Install to agents
-cut-skill uninstall [options]  # Remove from agents
-cut-skill list                 # Show installed locations
-cut-skill update               # Update to latest version
-cut-skill detect               # Detect installed agent tools
+node cli.mjs install [options]    # Install to agents
+node cli.mjs uninstall [options]  # Remove from agents
+node cli.mjs list                 # Show installed locations
+node cli.mjs update               # Update to latest version
+node cli.mjs detect               # Detect installed agent tools
+```
+
+Or use npx from GitHub directly (no clone needed):
+
+```bash
+npx github:ygtec/cut.skill/installer <command> [options]
 ```
 
 ## Install Options
@@ -65,6 +101,7 @@ cut-skill detect               # Detect installed agent tools
 | `--source <path>` | Use local repo path instead of downloading |
 | `--repo <github>` | Custom GitHub repo (default: `ygtec/cut.skill`) |
 | `--ref <git-ref>` | Custom branch/tag (default: `main`) |
+| `--mirror <url>` | git clone mirror prefix (e.g. `https://gh-proxy.com/` for China) |
 | `--force` | Overwrite existing installation |
 
 ## Supported Agents
@@ -80,30 +117,32 @@ cut-skill detect               # Detect installed agent tools
 
 ## Examples
 
+In all examples below, replace `npx github:ygtec/cut.skill/installer` with `node cli.mjs` if you've cloned the repo locally.
+
 ### Auto-detect and install
 
 ```bash
-cut-skill install
+npx github:ygtec/cut.skill/installer install
 # Detects installed agent tools and installs to all of them
 ```
 
 ### Install to specific agents
 
 ```bash
-cut-skill install --agent claude,codex
+npx github:ygtec/cut.skill/installer install --agent claude,codex
 ```
 
 ### Install to all 6 agents (force)
 
 ```bash
-cut-skill install --all --force
+npx github:ygtec/cut.skill/installer install --all --force
 ```
 
 ### Install to current project
 
 ```bash
 cd my-project
-cut-skill install --agent claude --project
+npx github:ygtec/cut.skill/installer install --agent claude --project
 # Creates .claude/skills/cut/ in current directory
 ```
 
@@ -114,13 +153,13 @@ cut-skill install --agent claude --project
 git clone https://github.com/ygtec/cut.skill.git /tmp/cut.skill
 
 # Install from local path
-cut-skill install --all --source /tmp/cut.skill
+node /tmp/cut.skill/installer/cli.mjs install --all --source /tmp/cut.skill
 ```
 
 ### List installations
 
 ```bash
-cut-skill list
+npx github:ygtec/cut.skill/installer list
 ```
 
 Output:
@@ -135,14 +174,14 @@ cut.skill 安装位置：
 ### Uninstall
 
 ```bash
-cut-skill uninstall --agent claude
-cut-skill uninstall --all
+npx github:ygtec/cut.skill/installer uninstall --agent claude
+npx github:ygtec/cut.skill/installer uninstall --all
 ```
 
 ### Update
 
 ```bash
-cut-skill update
+npx github:ygtec/cut.skill/installer update
 # Re-downloads and reinstalls to all previously installed locations
 ```
 
@@ -153,20 +192,6 @@ cut-skill update
 3. **Install**: Copy skill files to each agent's skill directory
 4. **Configure**: For Kimi, update `skills.yaml`; directory-scanning agents load `SKILL.md` from their skills folder
 5. **Verify**: Check `SKILL.md` exists in each target directory
-
-## Publish to npm (for maintainers)
-
-```bash
-cd installer
-npm login
-npm publish
-```
-
-After publishing, users can run:
-
-```bash
-npx cut-skill install --all
-```
 
 ## Files
 

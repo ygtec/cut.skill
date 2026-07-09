@@ -321,7 +321,6 @@ def cmd_export(args):
         result = E.export_to_file(args.output, preset=args.preset)
         _print_json(result)
 
-
 def cmd_plan(args):
     from .director import create_edit_plan
 
@@ -344,6 +343,162 @@ def cmd_qa(args):
     _print_json(report)
     if not report.get("success"):
         sys.exit(2)
+
+
+# ===========================================================================
+# 专业剪辑命令（基于剪映大神工作流调研）
+# ===========================================================================
+
+def cmd_auto_edit(args):
+    """一键成片：自动应用模板、转场、调色、字幕、ducking。"""
+    from .jianying.draft import Draft
+    from .jianying import auto_edit
+
+    draft = Draft.open(project_name=args.project, project_dir=args.dir, app=args.backend)
+    mat_ids = [m.strip() for m in args.videos.split(",") if m.strip()]
+    if not mat_ids:
+        print("请用 --videos 指定视频素材 ID（逗号分隔）", file=sys.stderr)
+        sys.exit(1)
+
+    texts = [t.strip() for t in args.texts.split("|")] if args.texts else None
+    bgm_mid = args.bgm or None
+
+    result = auto_edit.auto_edit(
+        draft, mat_ids, bgm_material_id=bgm_mid,
+        template=args.template, texts=texts,
+        auto_subtitle=args.subtitle, auto_color=args.color,
+        auto_transition=args.transitions, beat_sync=args.beat_sync,
+        color_preset=args.color_preset, subtitle_engine=args.subtitle_engine,
+    )
+
+    if not args.dry_run:
+        draft.save()
+    _print_json(result)
+
+
+def cmd_apply_template(args):
+    """应用爆款模板。"""
+    from .jianying.draft import Draft
+    from .jianying import viral_templates
+
+    if args.list:
+        _print_json(viral_templates.list_templates())
+        return
+
+    draft = Draft.open(project_name=args.project, project_dir=args.dir, app=args.backend)
+    mat_ids = [m.strip() for m in args.videos.split(",") if m.strip()]
+    texts = [t.strip() for t in args.texts.split("|")] if args.texts else None
+
+    result = viral_templates.apply_viral_template(
+        draft, args.template, mat_ids,
+        bgm_material_id=args.bgm, texts=texts,
+        auto_color=args.color, auto_transition=args.transitions,
+    )
+    if not args.dry_run:
+        draft.save()
+    _print_json(result)
+
+
+def cmd_add_lut(args):
+    """应用调色 LUT 或生成 LUT 包。"""
+    if args.generate:
+        from .jianying.pro_color import generate_all_luts
+        r = generate_all_luts(args.output or "./luts", size=args.size)
+        _print_json(r)
+        return
+
+    from .jianying.draft import Draft
+    from .jianying.pro_color import apply_color_preset, COLOR_PRESETS
+
+    if args.list_presets:
+        _print_json({k: {"name": v["name"], "description": v["description"]}
+                     for k, v in COLOR_PRESETS.items()})
+        return
+
+    draft = Draft.open(project_name=args.project, project_dir=args.dir, app=args.backend)
+
+    if args.all_clips:
+        for track in draft.video_tracks:
+            for seg in track.segments:
+                try:
+                    apply_color_preset(draft, seg.id, args.preset, intensity=args.intensity)
+                except Exception:
+                    pass
+    else:
+        track = draft.all_tracks()[args.track]
+        seg = track.segments[args.clip]
+        apply_color_preset(draft, seg.id, args.preset, intensity=args.intensity)
+
+    if not args.dry_run:
+        draft.save()
+    _print_json({"success": True, "preset": args.preset, "saved": not args.dry_run})
+
+
+def cmd_beat_sync(args):
+    """节拍识别 + 卡点对齐。"""
+    from .jianying.audio_beat import detect_beats, beat_sync_segments
+
+    if args.detect_only:
+        if not args.audio_path:
+            print("请用 --audio-path 指定音频文件", file=sys.stderr)
+            sys.exit(1)
+        _print_json(detect_beats(args.audio_path))
+        return
+
+    from .jianying.draft import Draft
+    draft = Draft.open(project_name=args.project, project_dir=args.dir, app=args.backend)
+    bgm_sid = args.audio_segment
+    seg_ids = [s.strip() for s in args.videos.split(",") if s.strip()]
+    r = beat_sync_segments(draft, bgm_sid, seg_ids)
+    if not args.dry_run:
+        draft.save()
+    _print_json(r)
+
+
+def cmd_add_huazi(args):
+    """添加花字文本。"""
+    from .jianying.pro_text import HUAZI_PRESETS
+
+    if args.list_presets:
+        _print_json({k: {"text_size": v.get("text_size"), "position_y": v.get("position_y")}
+                     for k, v in HUAZI_PRESETS.items()})
+        return
+
+    if not args.content or not args.start:
+        print("请用 --content 和 --start 指定文字内容与起始时间", file=sys.stderr)
+        sys.exit(1)
+
+    from .jianying.draft import Draft
+    from .jianying.pro_text import add_huazi_text
+
+    draft = Draft.open(project_name=args.project, project_dir=args.dir, app=args.backend)
+    start = _parse_time(args.start)
+    dur = _parse_time(args.duration) if args.duration else 3_000_000
+    r = add_huazi_text(draft, args.content, start, dur, preset=args.preset)
+    if not args.dry_run:
+        draft.save()
+    _print_json(r)
+
+
+def cmd_pro_transition(args):
+    """专业转场。"""
+    from .jianying.pro_effects import PRO_TRANSITION_PRESETS
+
+    if args.list_presets:
+        _print_json(PRO_TRANSITION_PRESETS)
+        return
+
+    from .jianying.draft import Draft
+    from .jianying.pro_effects import apply_pro_transition
+
+    draft = Draft.open(project_name=args.project, project_dir=args.dir, app=args.backend)
+    track = draft.all_tracks()[args.track]
+    left = track.segments[args.clip].id
+    right = track.segments[args.clip + 1].id
+    r = apply_pro_transition(draft, left, right, preset=args.preset)
+    if not args.dry_run:
+        draft.save()
+    _print_json(r)
 
 
 # ---------------------------------------------------------------------------
@@ -503,7 +658,6 @@ def build_parser():
     sp.add_argument("--method", default="ffmpeg", choices=["ui", "ffmpeg"], help="剪映专用")
     sp.add_argument("--preset", default="h264_1080p", help="Premiere 预设")
     sp.set_defaults(func=cmd_export)
-
     # plan
     sp = sub.add_parser("plan", help="从一句话生成专业剪辑执行计划")
     sp.add_argument("brief", help="用户剪辑需求")
@@ -518,6 +672,106 @@ def build_parser():
     sp.add_argument("--expected-duration", help="期望时长，支持 60s / 00:01:00 / 微秒")
     sp.add_argument("--min-video-bitrate", type=int, default=1_000_000)
     sp.set_defaults(func=cmd_qa)
+
+    # ===== 专业剪辑命令（基于剪映大神工作流调研）=====
+
+    # auto-edit 一键成片
+    sp = sub.add_parser("auto-edit", help="一键成片：自动模板+转场+调色+字幕+ducking")
+    sp.add_argument("--backend", default="jianying", choices=["jianying", "capcut"])
+    sp.add_argument("--project")
+    sp.add_argument("--dir")
+    sp.add_argument("--videos", required=True, help="视频素材ID列表，逗号分隔")
+    sp.add_argument("--bgm", help="BGM 素材 ID")
+    sp.add_argument("--template", default="vlog",
+                    choices=["tutorial","review","vlog","knowledge","drama","comparison","emotional","beat_sync"])
+    sp.add_argument("--texts", help="每个 phase 的文字，用 | 分隔")
+    sp.add_argument("--subtitle", action="store_true", default=True)
+    sp.add_argument("--no-subtitle", dest="subtitle", action="store_false")
+    sp.add_argument("--color", action="store_true", default=True)
+    sp.add_argument("--no-color", dest="color", action="store_false")
+    sp.add_argument("--transitions", action="store_true", default=True)
+    sp.add_argument("--no-transitions", dest="transitions", action="store_false")
+    sp.add_argument("--beat-sync", action="store_true", default=False)
+    sp.add_argument("--color-preset", help="覆盖模板的调色预设")
+    sp.add_argument("--subtitle-engine", default="mock", choices=["mock","whisper","online"])
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_auto_edit)
+
+    # apply-template 应用爆款模板
+    sp = sub.add_parser("apply-template", help="应用爆款模板")
+    sp.add_argument("--backend", default="jianying", choices=["jianying", "capcut"])
+    sp.add_argument("--project")
+    sp.add_argument("--dir")
+    sp.add_argument("--template", choices=["tutorial","review","vlog","knowledge","drama","comparison","emotional","beat_sync"])
+    sp.add_argument("--videos", help="视频素材ID列表，逗号分隔")
+    sp.add_argument("--bgm")
+    sp.add_argument("--texts", help="每个 phase 文字，| 分隔")
+    sp.add_argument("--color", action="store_true", default=True)
+    sp.add_argument("--no-color", dest="color", action="store_false")
+    sp.add_argument("--transitions", action="store_true", default=True)
+    sp.add_argument("--no-transitions", dest="transitions", action="store_false")
+    sp.add_argument("--list", action="store_true", help="列出所有模板")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_apply_template)
+
+    # add-lut 调色 LUT
+    sp = sub.add_parser("add-lut", help="应用调色 LUT 或生成 LUT 包")
+    sp.add_argument("--backend", default="jianying", choices=["jianying", "capcut"])
+    sp.add_argument("--project")
+    sp.add_argument("--dir")
+    sp.add_argument("--preset", help="调色预设名")
+    sp.add_argument("--track", type=int)
+    sp.add_argument("--clip", type=int)
+    sp.add_argument("--all-clips", action="store_true", help="应用到所有视频 segment")
+    sp.add_argument("--intensity", type=float, default=0.8)
+    sp.add_argument("--generate", action="store_true", help="生成 LUT 包到 --output 目录")
+    sp.add_argument("--output", help="生成 LUT 时的输出目录")
+    sp.add_argument("--size", type=int, default=32, help="LUT 立方体尺寸")
+    sp.add_argument("--list-presets", action="store_true", help="列出所有调色预设")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_add_lut)
+
+    # beat-sync 节拍卡点
+    sp = sub.add_parser("beat-sync", help="节拍识别 + 卡点对齐")
+    sp.add_argument("--backend", default="jianying", choices=["jianying", "capcut"])
+    sp.add_argument("--project")
+    sp.add_argument("--dir")
+    sp.add_argument("--audio-segment", help="BGM segment ID")
+    sp.add_argument("--videos", help="要卡点的视频 segment ID 列表，逗号分隔")
+    sp.add_argument("--detect-only", action="store_true", help="仅检测节拍")
+    sp.add_argument("--audio-path", help="检测节拍时的音频文件路径")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_beat_sync)
+
+    # add-huazi 花字
+    sp = sub.add_parser("add-huazi", help="添加花字文本（带预设动画）")
+    sp.add_argument("--backend", default="jianying", choices=["jianying", "capcut"])
+    sp.add_argument("--project")
+    sp.add_argument("--dir")
+    sp.add_argument("--content", help="文字内容")
+    sp.add_argument("--start", help="起始时间")
+    sp.add_argument("--duration", default="3000000")
+    sp.add_argument("--preset", default="vlog_clean",
+                    choices=["hook_red","hook_yellow","vlog_clean","vlog_minimal",
+                             "tutorial_boxed","cinematic","emphasis_red","stat_number",
+                             "quote_italic","chapter_title"])
+    sp.add_argument("--list-presets", action="store_true")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_add_huazi)
+
+    # pro-transition 专业转场
+    sp = sub.add_parser("pro-transition", help="专业转场（闪白/推拉/动态模糊等）")
+    sp.add_argument("--backend", default="jianying", choices=["jianying", "capcut"])
+    sp.add_argument("--project")
+    sp.add_argument("--dir")
+    sp.add_argument("--track", type=int, help="轨道索引")
+    sp.add_argument("--clip", type=int, help="在该 clip 与下个 clip 之间加")
+    sp.add_argument("--preset", default="smooth",
+                    choices=["smooth","flash_white","flash_black","zoom_in","zoom_out",
+                             "motion_blur","cinematic","vlog"])
+    sp.add_argument("--list-presets", action="store_true")
+    sp.add_argument("--dry-run", action="store_true")
+    sp.set_defaults(func=cmd_pro_transition)
 
     return p
 

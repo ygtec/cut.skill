@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 - CLI 新增 `plan` 与 `qa` 命令；MCP 新增 `cut.create_plan` 与 `cut.quality_check`。
 - `references/professional-workflow.md`：专业剪辑计划与导出 QA 参考。
 - `agents/openai.yaml`：Codex/OpenAI skill UI 元数据。
-- `tests/test_agent_compat.py` 与 `tests/test_professional_workflow.py`，测试套件扩展到 8 组。
+- `tests/test_agent_compat.py` 与 `tests/test_professional_workflow.py`，测试套件扩展到 9 组，并兼容远程 main 的专业功能测试。
 
 ### 修复 | Fixed
 

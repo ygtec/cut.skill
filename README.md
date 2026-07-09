@@ -13,12 +13,22 @@
 - **双后端支持**：剪映（draft 文件操控）+ Premiere（pymiere）
 - **跨平台**：Windows + macOS
 - **6 大核心能力**：素材导入 / 剪辑裁切 / 字幕文本 / 特效转场 / 音频混音 / 导出渲染
+- **6 大专业能力**（基于剪映大神工作流调研）：
+  - 🎬 **一键成片**：`auto-edit` 自动套模板+转场+调色+字幕+ducking
+  - 📹 **爆款模板**：8种（教程/测评/vlog/知识/剧情/对比/情感/卡点），含黄金3秒钩子结构
+  - 🎨 **调色 LUT**：7种（青橙/赛博朋克/日系/小清新/黑金/复古/莫兰迪），可生成 .cube 文件
+  - ✨ **专业转场**：8种（不透明度/闪白闪黑/推拉/动态模糊/文字蒙版等）
+  - 💬 **花字字幕**：10种预设 + ASR 自动字幕（whisper 集成）
+  - 🎵 **节拍卡点**：BGM 节拍识别 + 片段自动对齐
+- **模仿爆款**：给定参考视频元数据，生成同类型视频
 - **4 种集成形态**：纯文档 / CLI / MCP Server / HTTP API
 - **多家 agent 适配**：Codex / Claude / OpenCode / Kimi / Qwen / GLM
 - **上下文感知**：反向读取项目状态、素材池、时间轴、选中片段
 - **专业导演层**：一句话生成长视频/短视频剪辑计划，覆盖节奏、字幕、混音、调色、导出与 QA
 - **导出验收**：用 ffprobe 检查时长、码率、视频/音频流、分辨率和帧率
 - **安全设计**：原子写入、自动备份、dry-run 预览、JSON 校验
+
+详见 [`references/pro-features.md`](./references/pro-features.md)
 
 ## 快速开始
 
@@ -37,33 +47,93 @@ curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/inst
 curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
 ```
 
-**方式 2：npx**（需要 Node.js 18+）
+**国内网络不稳定时用镜像**：
 
 ```bash
-# 发布到 npm 后
-npx cut-skill install --all
+# 方式 A：用镜像下载脚本
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
 
-# 或直接从 GitHub 跑（无需发布）
-npx github:ygtec/cut.skill/installer install --all
+# 方式 B：指定镜像让 git clone 走代理
+curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --mirror https://gh-proxy.com/
 ```
 
-**方式 3：手动 clone**
+**方式 2：npx 直接从 GitHub 跑**（需要 Node.js 18+）
 
 ```bash
+# 安装到自动检测到的 agent
+npx github:ygtec/cut.skill/installer install
+
+# 安装到全部 6 家 agent
+npx github:ygtec/cut.skill/installer install --all
+
+# 国内镜像
+npx github:ygtec/cut.skill/installer install --all --mirror https://gh-proxy.com/
+```
+
+**方式 3：手动 clone + Python 运行**（适合开发者/离线环境）
+
+```bash
+# 1. clone 仓库（国内可用镜像：https://gh-proxy.com/https://github.com/ygtec/cut.skill.git）
 git clone https://github.com/ygtec/cut.skill.git
 cd cut.skill/scripts
+
+# 2. 创建虚拟环境（避免污染系统 Python）
+python -m venv .venv
+
+# 3. 激活虚拟环境
+#    macOS/Linux:
+source .venv/bin/activate
+#    Windows PowerShell:
+.venv\Scripts\Activate.ps1
+#    Windows CMD:
+.venv\Scripts\activate.bat
+
+# 4. 安装 Python 依赖
 pip install -r requirements.txt
+# 全功能安装（含 pymiere/flask/mcp 等可选依赖）
+pip install -e ".[all]"
+
+# 5. 验证安装
+python -m cut.cli detect
+# 应输出本机剪映/CapCut/Premiere 安装情况
+
+# 6. 开始使用
+python -m cut.cli list-drafts              # 列出剪映项目
+python -m cut.cli get-state --backend jianying --project <项目名>
+python -m cut.cli split --backend jianying --project <项目名> --track 0 --at 5s
 ```
 
-安装器支持 6 家 agent：Codex CLI / Claude Code / OpenCode / Kimi Code / Qwen Code / GLM Code。详见 [installer/README.md](./installer/README.md)。
+> 后续使用时只需 `source .venv/bin/activate` 激活环境即可，无需重复安装依赖。
+
+如需把 cut.skill 配置到你的 agent 工具（自动创建 skill 目录、更新配置文件），在仓库根目录运行：
+
+```bash
+node installer/cli.mjs install --all --source .
+```
+
+### 集成到 agent
+
+cut.skill 支持自动安装到 6 家 agent（自动创建 skill 目录、更新配置文件）：
+
+```bash
+# 自动检测本机已安装的 agent 工具并安装
+npx github:ygtec/cut.skill/installer install
+
+# 或指定 agent
+npx github:ygtec/cut.skill/installer install --agent claude,codex
+```
+
+安装完成后，在 agent 中直接说“检测一下我电脑上有什么视频剪辑软件”即可触发 skill。
+
+支持 6 家 agent：Codex CLI / Claude Code / OpenCode / Kimi Code / Qwen Code / GLM Code。详见 [installer/README.md](./installer/README.md) 和 [references/agent-integration.md](./references/agent-integration.md)。
 
 ### 验证安装
 
 ```bash
 # 查看安装位置
-npx cut-skill list
+npx github:ygtec/cut.skill/installer list
 
-# 或直接用 Python
+# 或直接用 Python（方式 3 用户）
 cd ~/.claude/skills/cut/scripts  # 路径因 agent 而异
 python -m cut.cli detect
 ```
@@ -159,7 +229,7 @@ cut/
 │   ├── cut/
 │   │   ├── platform.py            # 跨平台检测
 │   │   ├── context.py             # 统一上下文感知接口
-│   │   ├── cli.py                 # cut-cli 命令行（16 命令）
+│   │   ├── cli.py                 # cut-cli 命令行（22 命令）
 │   │   ├── mcp_server.py          # MCP Server（14 工具）
 │   │   ├── http_api.py            # Flask HTTP API（16 路由）
 │   │   ├── director.py            # 一句话生成专业剪辑计划
@@ -254,7 +324,8 @@ python tests/run_all.py
 | `test_draft.py` | Draft 解析、切分、字幕、备份 | 4 |
 | `test_e2e.py` | 端到端工作流：导入→切分→字幕→转场→特效→ducking→保存重读→反向读取 | 20 |
 | `test_mcp.py` | MCP 14 工具的 dispatch_tool 验证 | 16 |
-| `test_cli.py` | CLI 16 命令的 help、时间格式、dry-run、错误处理、plan | 11 |
+| `test_cli.py` | CLI 22 命令的 help、时间格式、dry-run、错误处理、plan | 11 |
+| `test_pro.py` | 一键成片、爆款模板、LUT、卡点、专业特效等能力 | 4 |
 | `test_http.py` | HTTP API 16 路由端到端验证 | 11 |
 | `test_regression.py` | Bug 修复回归测试 | 13 |
 | `test_agent_compat.py` | Agent 兼容路径、工具名、skill 元数据 | 4 |

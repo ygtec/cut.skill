@@ -6,6 +6,9 @@
 #   curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --all
 #   curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --agent claude
 #
+# 国内网络不稳定时可改用镜像：
+#   curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+#
 # 选项：
 #   --agent <name>   目标 agent（codex/claude/opencode/kimi/qwen/glm），可逗号分隔
 #   --all            安装到全部 6 家 agent
@@ -13,6 +16,7 @@
 #   --project        安装到当前项目目录
 #   --repo <github>  自定义仓库（默认 ygtec/cut.skill）
 #   --ref <git-ref>  自定义分支/tag（默认 main）
+#   --mirror <url>   指定 git clone 镜像前缀（如 https://gh-proxy.com/）
 #   --force          覆盖已存在的安装
 #   --help           显示帮助
 
@@ -25,6 +29,7 @@ AGENTS=""
 ALL=false
 SCOPE="user"
 FORCE=false
+MIRROR=""  # 用户指定的镜像
 
 # 颜色（TTY 时启用）
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -48,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --project) SCOPE="project"; shift ;;
     --repo) REPO="$2"; shift 2 ;;
     --ref) REF="$2"; shift 2 ;;
+    --mirror) MIRROR="$2"; shift 2 ;;
     --force) FORCE=true; shift ;;
     --help|-h)
       cat <<EOF
@@ -63,8 +69,20 @@ ${BOLD}选项：${RESET}
   ${CYAN}--project${RESET}        安装到当前项目目录
   ${CYAN}--repo <github>${RESET}  自定义仓库（默认 ygtec/cut.skill）
   ${CYAN}--ref <git-ref>${RESET}  自定义分支/tag（默认 main）
+  ${CYAN}--mirror <url>${RESET}   git clone 镜像前缀（如 https://gh-proxy.com/）
   ${CYAN}--force${RESET}          覆盖已存在的安装
   ${CYAN}--help${RESET}           显示此帮助
+
+${BOLD}国内网络不稳定时：${RESET}
+  # 方式 A：用镜像下载本脚本
+  curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash
+
+  # 方式 B：手动指定镜像让 git clone 走代理
+  curl -fsSL https://raw.githubusercontent.com/ygtec/cut.skill/main/installer/install.sh | bash -s -- --mirror https://gh-proxy.com/
+
+  # 方式 C：完全离线（先手动 clone，再用 Python 跑）
+  git clone https://gh-proxy.com/https://github.com/ygtec/cut.skill.git
+  cd cut.skill && bash installer/install.sh --all --source .
 
 ${BOLD}示例：${RESET}
   ${DIM}# 安装到所有 agent${RESET}
@@ -72,9 +90,6 @@ ${BOLD}示例：${RESET}
 
   ${DIM}# 仅安装到 Claude${RESET}
   curl ... | bash -s -- --agent claude
-
-  ${DIM}# 安装到当前项目${RESET}
-  curl ... | bash -s -- --agent codex --project
 EOF
       exit 0
       ;;
@@ -91,33 +106,74 @@ echo "${DIM}范围: ${SCOPE}${RESET}"
 echo ""
 
 # ---------------------------------------------------------------------------
-# 1. 检测 Node.js（优先用 Node 安装器，功能更完整）
+# 1. git clone 函数：支持镜像回退
+# ---------------------------------------------------------------------------
+clone_repo() {
+  local target_dir="$1"
+  local repo="$2"
+  local ref="$3"
+  local mirror="$4"
+
+  # 候选 URL 列表：用户指定镜像 → 直连 → 公共镜像
+  local urls=()
+  if [ -n "$mirror" ]; then
+    urls+=("${mirror}https://github.com/${repo}.git")
+  fi
+  urls+=("https://github.com/${repo}.git")
+  # 公共镜像回退（仅当用户没指定镜像时才尝试）
+  if [ -z "$mirror" ]; then
+    urls+=("https://gh-proxy.com/https://github.com/${repo}.git")
+  fi
+
+  for url in "${urls[@]}"; do
+    echo "${CYAN}尝试: ${url}${RESET}"
+    if git clone --depth 1 --branch "$ref" "$url" "$target_dir" 2>/dev/null; then
+      echo "${GREEN}✓${RESET} 下载成功"
+      return 0
+    else
+      echo "${YELLOW}⚠${RESET} 失败，尝试下一个"
+      rm -rf "$target_dir" 2>/dev/null || true
+    fi
+  done
+
+  echo "${RED}✗ 所有 git clone 源都失败${RESET}" >&2
+  echo "" >&2
+  echo "${BOLD}可能的解决方案：${RESET}" >&2
+  echo "  1. 检查网络连接" >&2
+  echo "  2. 用镜像：bash install.sh --mirror https://gh-proxy.com/" >&2
+  echo "  3. 手动 clone 后本地运行：" >&2
+  echo "     git clone https://gh-proxy.com/https://github.com/${repo}.git" >&2
+  echo "     cd cut.skill && bash installer/install.sh --all --source ." >&2
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+# 2. 检测 Node.js（优先用 Node 安装器，功能更完整）
 # ---------------------------------------------------------------------------
 USE_NODE=false
 if command -v node >/dev/null 2>&1; then
   NODE_VERSION=$(node -v 2>/dev/null | sed 's/v//' | cut -d. -f1)
   if [ "$NODE_VERSION" -ge 18 ]; then
     USE_NODE=true
-    echo "${GREEN}✓${RESET} 检测到 Node.js $(node -v)，使用 Node 安装器"
+    echo "${GREEN}✓${RESET} 检测到 Node.js $(node -v)"
   fi
 fi
 
 if [ "$USE_NODE" = "true" ]; then
-  # 用 Node 安装器：下载 installer 目录到临时位置，运行 cli.mjs
   TMPDIR=$(mktemp -d 2>/dev/null || mktemp -d -t cut-skill)
   trap "rm -rf '$TMPDIR'" EXIT
 
-  echo "${CYAN}下载安装器...${RESET}"
-  if command -v git >/dev/null 2>&1; then
-    git clone --depth 1 --branch "$REF" "https://github.com/${REPO}.git" "$TMPDIR/repo" 2>/dev/null
-  else
-    echo "${RED}错误: 需要 git 或手动下载${RESET}" >&2
+  echo "${CYAN}下载 cut.skill 仓库...${RESET}"
+  if ! command -v git >/dev/null 2>&1; then
+    echo "${RED}错误: 需要 git。请先安装 git${RESET}" >&2
     exit 1
   fi
 
+  clone_repo "$TMPDIR/repo" "$REPO" "$REF" "$MIRROR" || exit 1
+  rm -rf "$TMPDIR/repo/.git"
+
   # 检查 installer 目录是否存在（旧版本可能没有）
   if [ -f "$TMPDIR/repo/installer/cli.mjs" ]; then
-    # 构造参数
     ARGS=()
     if [ "$ALL" = "true" ]; then ARGS+=("--all"); fi
     if [ -n "$AGENTS" ]; then ARGS+=("--agent" "$AGENTS"); fi
@@ -134,26 +190,24 @@ if [ "$USE_NODE" = "true" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 2. 纯 bash 回退方案（无 Node.js 或 installer 目录不存在）：用 git clone + 手动复制
+# 3. 纯 bash 回退方案（无 Node.js）：用 git clone + 手动复制
 # ---------------------------------------------------------------------------
 if [ "$USE_NODE" = "true" ]; then
-  # 从 Node 路径回退：$TMPDIR/repo 已存在，复用
   echo "${YELLOW}⚠${RESET} 使用纯 bash 安装（功能简化）"
 else
   echo "${YELLOW}⚠${RESET} 未检测到 Node.js 18+，使用纯 bash 安装（功能简化）"
+fi
 
-  # 检查 git
-  if ! command -v git >/dev/null 2>&1; then
-    echo "${RED}错误: 需要 git。请先安装 git 或 Node.js 18+${RESET}" >&2
-    exit 1
-  fi
+if ! command -v git >/dev/null 2>&1; then
+  echo "${RED}错误: 需要 git。请先安装 git${RESET}" >&2
+  exit 1
+fi
 
-  # 下载仓库
+if [ -z "${TMPDIR:-}" ]; then
   TMPDIR=$(mktemp -d 2>/dev/null || mktemp -d -t cut-skill)
   trap "rm -rf '$TMPDIR'" EXIT
-
   echo "${CYAN}下载 cut.skill...${RESET}"
-  git clone --depth 1 --branch "$REF" "https://github.com/${REPO}.git" "$TMPDIR/repo" 2>/dev/null
+  clone_repo "$TMPDIR/repo" "$REPO" "$REF" "$MIRROR" || exit 1
 fi
 rm -rf "$TMPDIR/repo/.git"
 
@@ -163,7 +217,6 @@ if [ "$ALL" = "true" ]; then
 elif [ -n "$AGENTS" ]; then
   TARGETS=$(echo "$AGENTS" | tr ',' ' ')
 else
-  # 自动检测
   TARGETS=""
   command -v codex >/dev/null 2>&1 && TARGETS="$TARGETS codex"
   command -v claude >/dev/null 2>&1 && TARGETS="$TARGETS claude"
@@ -171,7 +224,6 @@ else
   command -v kimi >/dev/null 2>&1 && TARGETS="$TARGETS kimi"
   command -v qwen >/dev/null 2>&1 && TARGETS="$TARGETS qwen"
   command -v glm >/dev/null 2>&1 && TARGETS="$TARGETS glm"
-  # macOS Claude Desktop
   [ -d "/Applications/Claude.app" ] && [[ "$TARGETS" != *"claude"* ]] && TARGETS="$TARGETS claude"
 
   if [ -z "$TARGETS" ]; then
@@ -192,20 +244,17 @@ install_to_dir() {
     echo "${YELLOW}  ⚠ $agent_name: 已安装（用 --force 覆盖）${RESET}"
     return 0
   fi
-  mkdir -p "$target"
+  mkdir -p "$(dirname "$target")"
   rm -rf "$target"
   mkdir -p "$target"
-  # 复制（排除 installer 自身）
   for item in SKILL.md README.md README.en.md LICENSE CHANGELOG.md CONTRIBUTING.md .gitignore references scripts agents examples tests; do
     [ -e "$TMPDIR/repo/$item" ] && cp -R "$TMPDIR/repo/$item" "$target/"
   done
-  # 排除 __pycache__、node_modules
   find "$target" -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
   find "$target" -name node_modules -type d -exec rm -rf {} + 2>/dev/null || true
   echo "${GREEN}  ✓ $agent_name: $target${RESET}"
 }
 
-# 每家 agent 的安装路径
 for agent in $TARGETS; do
   case "$agent" in
     codex)
@@ -223,7 +272,6 @@ for agent in $TARGETS; do
     kimi)
       DIR="$HOME/.kimi/skills/cut"
       install_to_dir "$DIR" "Kimi Code"
-      # 更新 skills.yaml
       mkdir -p "$HOME/.kimi"
       CONFIG="$HOME/.kimi/skills.yaml"
       if [ ! -f "$CONFIG" ]; then
@@ -256,3 +304,4 @@ done
 echo ""
 echo "${BOLD}完成！${RESET}"
 echo "${DIM}重启你的 agent 工具让它加载新 skill。${RESET}"
+echo "${DIM}验证安装：cd ~/.glm/skills/cut/scripts && python -m cut.cli detect${RESET}"
